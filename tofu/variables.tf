@@ -1,11 +1,7 @@
-# CHANGE ME when copying this into a new app: app_name, bucket_name,
-# ecs_service_name and eks_dev.service_account. Everything else is shared
-# across every SDK app and should be left alone.
-
 variable "app_name" {
   description = "Repository name. Used for tags and for the STS session name on every assumed role."
   type        = string
-  default     = "sdk-ai-boilerplate"
+  default     = "sdk-fishers-and-forts"
 }
 
 variable "bucket_name" {
@@ -15,7 +11,7 @@ variable "bucket_name" {
     every other app bucket already follows.
   EOT
   type        = string
-  default     = "sdk-ai-boilerplate"
+  default     = "sdk-fishers-and-forts"
 }
 
 variable "region" {
@@ -51,14 +47,14 @@ variable "ecs_service_name" {
     The Fargate task role is named "<tenant>-<environment>-<this>-task".
   EOT
   type        = string
-  default     = "app0"
+  default     = "fishforts0"
 }
 
 variable "eks_dev" {
   description = <<-EOT
     Dev EKS cluster and the ServiceAccount the app pod runs as. The IRSA role
     created here is only reachable once that ServiceAccount exists and carries
-    the eks.amazonaws.com/role-arn annotation (see argo/ in this repo).
+    the eks.amazonaws.com/role-arn annotation (see apps/sdk-fishers-and-forts in metaversecloud-com/sdk-gitops).
   EOT
   type = object({
     cluster_name    = string
@@ -68,7 +64,7 @@ variable "eks_dev" {
   default = {
     cluster_name    = "Topia-dev-SDK-Apps"
     namespace       = "sdk-apps-dev"
-    service_account = "app0-sa"
+    service_account = "fishforts0-sa"
   }
 }
 
