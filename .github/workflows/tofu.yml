@@ -2,7 +2,7 @@ name: Tofu (plan / apply / destroy)
 
 # Infrastructure this app owns lives in tofu/ and is applied REMOTELY by
 # Terrakube -- this workflow never runs tofu on the runner, it only calls the
-# Terrakube API to start a job against the `sdk-ai-boilerplate` workspace. AWS
+# Terrakube API to start a job against the `sdk-fishers-and-forts` workspace. AWS
 # credentials come from Terrakube dynamic credentials (OIDC), so no AWS keys or
 # roles are needed here; the only secret is the Terrakube token.
 on:
@@ -32,7 +32,7 @@ permissions:
 # Never let two jobs race the same Terrakube workspace: a merge and a manual
 # run would otherwise queue two applies against one state.
 concurrency:
-  group: sdk-ai-boilerplate-tofu
+  group: sdk-fishers-and-forts-tofu
   cancel-in-progress: false
 
 env:
@@ -41,8 +41,7 @@ env:
   TK_ORG: ${{ vars.TERRAKUBE_ORGANIZATION_ID }}
   TK_ORG_NAME: ${{ vars.TERRAKUBE_ORGANIZATION_NAME || 'topia-mgmt' }}
   TK_WORKSPACE: ${{ vars.TERRAKUBE_WORKSPACE_ID }}
-  # CHANGE ME: the Terrakube workspace for this repo.
-  TK_WORKSPACE_NAME: sdk-ai-boilerplate
+  TK_WORKSPACE_NAME: sdk-fishers-and-forts
   TK_BRANCH: ${{ github.ref_name }}
   # A merge applies; a manual run does whatever was picked.
   TK_ACTION: ${{ inputs.action || 'apply' }}
