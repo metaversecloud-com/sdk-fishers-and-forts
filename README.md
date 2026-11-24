@@ -1,214 +1,65 @@
-<div align="center">
-<img src="https://global-uploads.webflow.com/62e7004a0f9b3a63b980ac3c/62e70c84dd3aac06fb2ac2b6_topia-logo-blue-2x.png" style="width: 120px; margin-bottom: 20px" alt="Topia logo">
-</div>
+# Fishers & Forts
 
-# SDK App README Template
+An Ice Fishing logic puzzle in a drawer, plus a Snow Fort in the world that everyone builds together. Every fish caught adds snow; as World Snow grows, bricks appear on the fort one at a time. Launching with Winter Wonderland (Dec 1, 2026).
 
-> This README is a template. When you fork the boilerplate into a new app, **replace this file** with one that describes your app — keep the same section structure so world builders and other developers can find what they need in a predictable place.
+See [`plan.md`](plan.md) for the design decisions, data models and build status.
 
-## Introduction / Summary
+## What players see
 
-One- or two-sentence description of what this app does and who it's for.
+- **Fishing drawer** (Fishing Shack): today's **Daily Lake** (same lake for everyone, one try, one special fish), then the **Daily Fishing Tournament** (up to 10 random lakes a day). A 7×7 lake hides 7 fish; you have 18 drills. A drilled hole shows how many of its 8 neighbors hold a fish. The Helper marks holes that a single number proves are empty.
+- **Snow Fort drawer** (Fort Sign): the fort as built so far, progress to the goal, your contribution, builders, and the four sections.
+- **Trophy drawer**: Tournament, Daily Lake (Today / Yesterday) and Fort Builders leaderboards; Badges.
+- **Toasts**: special catch, brick added, yesterday's tournament finish, milestones and fort complete (world-wide), badges.
 
-This template is meant to give you a simple starting point to build new features in Topia using our JavaScript SDK. Please reference the [SDK documentation](https://metaversecloud-com.github.io/mc-sdk-js/index.html) for a more detailed breakdown of what the SDK is capable of and how to use it.
+## What admins see
 
-## Key Features
+The gear in the Fishing drawer opens **Admin Settings**: fort goal (1,000 / 10,000 / 30,000 / 50,000 / 100,000), tournament lakes per day (5 / 10 / 20 / no limit), **Start a new fort**, and a warning listing any fort blocks missing from the world. Admins can also reset the Fort Builders leaderboard from the Trophy drawer.
 
-### Canvas elements & interactions
+## Required assets (unique names)
 
-- **Key Asset:** When clicked, this asset opens the drawer and allows visitors and admins to start interacting with the app.
+Place one scene per world:
 
-### Drawer content
+| Asset | Unique name | Click behavior |
+|---|---|---|
+| Fishing Shack (key asset) | `Fishers&Forts_keyAsset` | Iframe drawer → `{appUrl}/` |
+| Fort Sign | `Fishers&Forts_fort` | Iframe drawer → `{appUrl}/fort` |
+| Trophy | none needed | Iframe drawer → `{appUrl}/trophy` |
+| Fort blocks 1–50 | `Fishers&Forts_fortBlock_1` … `Fishers&Forts_fortBlock_50` | Not clickable. Web-image asset, transparent to start. Slots 33–34 are the tower tops |
+| Flag | `Fishers&Forts_fortFlag` | Not clickable. Web-image asset, transparent to start |
 
-- How to play instructions
-- Leaderboard
-- Admin features (see below)
+Slot order (Castle): foundation 1–8 (bottom row, left → right), walls 9–20, towers 21–34 (33/34 = tower tops), keep 35–50, flag above 50. A missing or deleted block never breaks the game; it's listed in Admin Settings and restored automatically once an asset with that unique name is back.
 
-### Admin features
+Piece art is served from `client/public/assets/fort/winter/` (`brick.png`, `tower-top.png`, `flag.png`, `transparent.png`; placeholders until final art). Override the base URL with `FORT_ART_BASE_URL`.
 
-_Does your app have special admin functionality? If so your key features may look something like this:_
+## API
 
-- **Access:** Click on the key asset to open the drawer and then select the Admin tab. Any changes made here only affect this instance of the application and do not impact other instances dropped in this or other worlds.
-- **Theme selection:** Use the dropdown to select a theme.
-- **Reset:** Click the Reset button to clear the active game state and rebuild the game board in its default state.
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/game-state?kind=daily\|tournament&open=` | Fishing drawer |
+| POST | `/api/lake/drill` `{ kind, hole }` | Drill a hole (server-authoritative) |
+| GET | `/api/fort?open=` | Snow Fort drawer |
+| GET | `/api/trophy?open=&forceRefreshInventory=` | Leaderboards + badges |
+| POST | `/api/leaderboard-view` `{ board }` | Leaderboard view analytics |
+| GET/POST | `/api/admin/settings` | Admin settings (+ missing block report) |
+| POST | `/api/admin/start-new-fort` | Reset the fort |
+| POST | `/api/admin/reset-leaderboard` | Reset Fort Builders |
 
-### Themes description
+## Data objects
 
-- **Winter (default):** A snowy theme that drops snowflakes throughout the scene.
-- **Spring:** A garden theme that drops flowers throughout the scene.
+- **World**: `fort`, `settings`, `dayKey`, `leaderboards` (pipe-delimited), `tournamentHistory`, `fortBuildersEpoch`.
+- **Visitor/User**: `lifetime` totals and a `badges` cache at the top level; per-world state under `[urlSlug]` (daily progress, tournament progress, snow added).
 
-## Required Assets with Unique Names
+Full shapes: [`shared/types/index.ts`](shared/types/index.ts).
 
-_If your app uses dropped assets on the canvas that are found by unique name, document them here. This helps world builders set up the correct assets for the app to function._
+## Badges
 
-| Unique Name Pattern | Description                                             |
-| ------------------- | ------------------------------------------------------- |
-| `AppName_keyAsset`  | Key asset that opens the app drawer                     |
-| `AppName_item_{id}` | Dynamically created assets (created/deleted by the app) |
+19 badges (Fishing, Daily Lake, Fishing Tournament, Snow Fort; see `server/utils/badges.ts`). Import them into the ecosystem with names matching exactly; icons come from the ecosystem catalog.
 
-> **Note:** Assets with fixed unique names (e.g., `AppName_keyAsset`) must be placed in the world manually by an admin. Assets with dynamic patterns (e.g., `AppName_item_{timestamp}`) are created and managed by the app at runtime.
-
-## Technical Architecture
-
-### Data Objects
-
-_Data objects store information about each implementation of the app per world._
-
-#### Visitor / User
-
-The data object attached to the visitor stores information related specifically to the visitor (e.g., progress). For tracking across multiple world instances, use `${urlSlug}_${sceneDropId}` as a unique key. Example data:
-
-```ts
-{
-  [`${urlSlug}_${sceneDropId}`]: {
-    currentStreak: number,
-    lastCollectedDate: string,
-    longestStreak: number,
-    totalCollected: number,
-  }
-}
-```
-
-#### Key Asset
-
-The data object attached to the dropped key asset stores information related to this specific instance of the app and is deleted if the key asset is removed from the world. Example data:
-
-```ts
-{
-  isResetInProgress: boolean;
-  lastInteractionDate: string;
-  lastPlayerTurn: string;
-  playerCount: number;
-  resetCount: number;
-  turnCount: number;
-}
-```
-
-#### World
-
-The data object attached to the world stores information for every instance of the app in a given world, keyed by `keyAssetId` or `sceneDropId`. It persists even if a specific instance is removed. Keep World data minimal to avoid hitting size limits. Example data:
-
-```ts
-{
-  [sceneDropId]: {
-    keyAssetId: string;
-    themeId: string;
-  }
-}
-```
-
-## API Endpoints
-
-_Document every server route the client (or external systems) can call. Group by feature so it's easy to scan._
-
-| Method | Route             | Description                                                            |
-| ------ | ----------------- | ---------------------------------------------------------------------- |
-| `GET`  | `/visitor`        | Initialize / fetch visitor data (calls `getVisitor` utility)           |
-| `GET`  | `/game-state`     | Return the current per-asset game state from the key asset data object |
-| `POST` | `/game-state`     | Update game state (admin or gameplay actions)                          |
-| `GET`  | `/leaderboard`    | Return the world-scoped leaderboard for this app                       |
-| `POST` | `/leaderboard`    | Submit a score to the leaderboard                                      |
-| `GET`  | `/admin/settings` | Return admin-configurable settings for this asset                      |
-| `POST` | `/admin/settings` | Update admin settings (admin-only)                                     |
-| `POST` | `/admin/reset`    | Reset the game state for this asset (admin-only)                       |
-| `GET`  | `/sse/:assetId`   | Open an SSE stream for real-time updates (if the app uses SSE)         |
-| `POST` | `/webhook`        | Receive webhook callbacks from the Topia platform                      |
-
-> Real-time updates pattern: see `.ai/rules.md` → **REAL-TIME UPDATES (SSE)** and the canonical reference implementation in `topia-sdk-apps/sdk-ring-toss/server/utils/sseManager.ts`.
-
-## Analytics
-
-_Document every analytics event this app fires so ops and product can find it. Include what triggers each event and where in the code it lives. If the app also writes to a side channel (Google Sheets, external analytics), note that here too._
-
-| Event             | Fired when                                     | Where                |
-| ----------------- | ---------------------------------------------- | -------------------- |
-| `starts`          | A visitor opens the drawer for the first time. | `GET /visitor`.      |
-| `gameCompletions` | A game round finishes successfully.            | `POST /game-state`.  |
-| `resets`          | Admin resets the game.                         | `POST /admin/reset`. |
-
-If the app writes to Google Sheets (via `GOOGLESHEETS_*` env vars), note which events are appended and to which Sheet range.
-
-## Environment Variables
-
-Create a `.env` file in the root directory. See `.env-example` for a template.
-
-| Variable               | Description                                                                        | Required |
-| ---------------------- | ---------------------------------------------------------------------------------- | -------- |
-| `INTERACTIVE_KEY`      | Topia interactive app key                                                          | Yes      |
-| `INTERACTIVE_SECRET`   | Topia interactive app secret                                                       | Yes      |
-| `INSTANCE_DOMAIN`      | Topia API domain (`api.topia.io` for production, `api-stage.topia.io` for staging) | Yes      |
-| `INSTANCE_PROTOCOL`    | `https` for production/staging, `http` only for local                              | Yes      |
-| `NODE_ENV`             | Node environment                                                                   | No       |
-| `PORT`                 | Server port (defaults to `3001`)                                                   | No       |
-| `LEADERBOARD_BASE_URL` | Base URL for the leaderboard service (if applicable)                               | No       |
-| `SKIP_PREFLIGHT_CHECK` | Skip CRA preflight check                                                           | No       |
-
-### Where to find `INTERACTIVE_KEY` and `INTERACTIVE_SECRET`
-
-- [Topia Production Account Dashboard](https://topia.io/t/dashboard/integrations)
-
-## Deployment
-
-This repo only builds an image. On every push to `dev`, CI pushes it to the shared dev ECR under
-the mutable tag `sdk-example:<repo>`; a merged PR into `main` cuts a release for prod. No Kubernetes
-manifests live here.
-
-What runs where is declared in [`metaversecloud-com/sdk-gitops`](https://github.com/metaversecloud-com/sdk-gitops): one directory per app,
-`apps/<repo>/services/<svc>/` (Deployment, Service, Ingress) and `apps/<repo>/envs/<env>/`
-(kustomization, `config.json`, ConfigMap, SealedSecret, KEDA HTTPScaledObject). Argo CD Image
-Updater pins the current digest of the tag there, so a fork of this template is enrolled by adding its
-own `apps/<repo>/` copied from a sibling app, an `applicationRefs` entry and a host on the shared
-interceptor Ingress — see that repo's README.
-
-## Getting Started
+## Development
 
 ```bash
-# from the app root
+cp .env-example .env   # INTERACTIVE_KEY, INTERACTIVE_SECRET, INSTANCE_DOMAIN
 npm install
-cd client && npm install && cd ..
-
-# create a .env at the app root (see Environment Variables above)
-cp .env-example .env
-
-# run the dev server (serves the client and the Express server together)
-npm run dev
+npm run dev            # server :3000, client :3001
+cd server && npx jest  # engine, fort and route tests
 ```
-
-## For Developers
-
-### Built With
-
-#### Client
-
-![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
-![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
-![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
-
-#### Server
-
-![Node.js](https://img.shields.io/badge/node.js-%2343853D.svg?style=for-the-badge&logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/express-%23000000.svg?style=for-the-badge&logo=express&logoColor=white)
-
-### Styling
-
-This project uses the Topia SDK's CSS classes for consistent styling, layered with Tailwind via CSS cascade layers (`@layer tailwind, sdk;` — SDK wins over Tailwind, unlayered project CSS wins over both). Tailwind preflight is disabled to avoid clobbering SDK defaults.
-
-- Read [`.ai/style-guide.md`](.ai/style-guide.md) for the full SDK class catalog, the cascade-layer setup (`client/src/index.css`, `client/index.html`, `client/tailwind.config.js`), custom CSS conventions, and the component structure pattern.
-- The canonical reference implementation lives in [`topia-sdk-apps/sdk-escape-room/client/src/index.css`](../sdk-escape-room/client/src/index.css).
-
-### Accessibility
-
-Every UI change must meet **WCAG 2.1 AA**.
-
-- Read [`.ai/accessibility.md`](.ai/accessibility.md) for the required patterns: semantic elements, icon-button labeling, form labels, the modal dialog contract, focus management, contrast, motion, and the testing flow.
-
-### SDK fundamentals
-
-If anything about how the SDK _works_ is unclear (Interactive Keys, JWT signing, iframes vs webhooks, session credentials, dropped-asset operations, backend validation), read [`.ai/sdk-fundamentals.md`](.ai/sdk-fundamentals.md).
-
-### Helpful links
-
-- [SDK Developer docs](https://metaversecloud-com.github.io/mc-sdk-js/index.html)
-- View it in action: [Dev](https://topia.io/appname-dev), [Prod](https://topia.io/appname-prod)
-- [Notion One Pager]()

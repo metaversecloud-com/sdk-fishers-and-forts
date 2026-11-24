@@ -1,29 +1,1101 @@
 /*
- * App-specific component classes.
- *
- * These are unlayered (not wrapped in `@layer { … }`) so they win over both
- * the SDK component styles (.btn, .card, etc.) and Tailwind utilities — no
- * `!important` needed.
- *
- * Use an app-specific prefix on every class name (e.g. `.er-card--running`
- * for the escape-room app, `.kr-tile` for kitchen-rush) so these classes are
- * obviously project-scoped and won't collide with the SDK or Tailwind.
- *
- * Build on top of the SDK's design system rather than replacing it:
- *
- *   <div className="card app-card app-card--featured">…</div>
- *
- * not
- *
- *   <div className="app-custom-card">…</div>
- *
- * Consume tokens from `tokens.css` instead of hard-coding values:
- *
- *   .app-card--featured {
- *     background: var(--app-grad-hero);
- *     border-color: var(--app-primary);
- *     box-shadow: var(--app-shadow-card);
- *   }
- *
- * See `.ai/style-guide.md` for the full convention.
+ * Fishers & Forts — component classes (prefix `ff-`). Unlayered, so they win over SDK + Tailwind.
+ * Built to match the ww-icefish-ui-* mockups.
  */
+
+/* ───────────────────────── Page / drawer shell ───────────────────────── */
+.ff-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 18px var(--ff-pad) 28px;
+  overflow-x: hidden;
+}
+
+/* Dot texture: 1.2px dots on an 11px grid at 20% in the top-right corner, fading out. */
+.ff-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 180px;
+  height: 220px;
+  background-image: radial-gradient(circle, rgba(16, 32, 46, 0.2) 1.2px, transparent 1.4px);
+  background-size: 11px 11px;
+  -webkit-mask-image: radial-gradient(ellipse at top right, #000 10%, transparent 72%);
+  mask-image: radial-gradient(ellipse at top right, #000 10%, transparent 72%);
+  pointer-events: none;
+}
+
+.ff-page > * {
+  position: relative;
+}
+
+.ff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ff-header__title {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  min-width: 0;
+}
+
+/* Title art (fishers.png / forts.png) in place of the header text. */
+.ff-header__image {
+  display: block;
+  max-width: 100%;
+  max-height: 44px;
+  width: auto;
+  height: auto;
+}
+
+/* Fishers & Forts logo at the top of the Trophy drawer. */
+.ff-logo {
+  display: block;
+  width: 75%;
+  max-width: 280px;
+  height: auto;
+  margin: 0 auto 14px;
+}
+
+.ff-header__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Round outlined header button (the standard AdminIconButton gear). */
+.ff-header .btn.btn-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  margin: 0;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: var(--ff-outline);
+  border-radius: 999px;
+  background: var(--ff-card);
+  color: var(--ff-ink);
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.ff-header .btn.btn-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.ff-header .btn.btn-icon:hover {
+  background: var(--ff-marked);
+}
+
+/* Full-bleed banner strip */
+.ff-banner {
+  margin: 14px calc(-1 * var(--ff-pad)) 16px;
+  padding: 9px var(--ff-pad);
+  background: var(--ff-sun);
+  border-top: var(--ff-outline);
+  border-bottom: var(--ff-outline);
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ff-banner--first {
+  margin-top: 0;
+}
+
+.ff-copy {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ff-muted);
+}
+
+.ff-copy--ink {
+  color: var(--ff-ink);
+  font-weight: 500;
+}
+
+.ff-mono-label {
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ff-stack > * + * {
+  margin-top: 14px;
+}
+
+.ff-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-btn);
+  background: #fde8e8;
+  color: #8a1c1f;
+  font-size: 13px;
+}
+
+.ff-status {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ff-muted);
+  min-height: 1em;
+}
+
+/* ───────────────────────── Pill switch (lake switch, tabs) ───────────────────────── */
+.ff-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 5px;
+  border: var(--ff-outline);
+  border-radius: 999px;
+  background: var(--ff-card);
+}
+
+.ff-switch__thumb {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc(50% - 5px);
+  border-radius: 999px;
+  background: var(--ff-ink);
+  transition: transform 0.25s var(--ff-ease-out);
+}
+
+.ff-switch[data-active="1"] .ff-switch__thumb {
+  transform: translateX(100%);
+}
+
+.ff-switch__opt {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  font-family: var(--ff-font-body);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ff-ink);
+  cursor: pointer;
+  transition: color 0.25s;
+}
+
+.ff-switch__opt[aria-selected="true"],
+.ff-switch__opt[aria-pressed="true"] {
+  color: var(--ff-card);
+}
+
+.ff-switch__opt.is-locked {
+  color: var(--ff-mute-2);
+}
+
+.ff-switch__opt svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ───────────────────────── Counters ───────────────────────── */
+.ff-counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ff-counter {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: var(--ff-outline);
+  border-radius: 999px;
+  background: var(--ff-card);
+}
+
+.ff-counter__label {
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ff-muted);
+}
+
+.ff-counter__value {
+  display: inline-block;
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.ff-counter__value.is-bump {
+  animation: ff-bump 0.32s ease-out;
+}
+
+.ff-counter__total {
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ff-muted);
+}
+
+/* ───────────────────────── The lake ───────────────────────── */
+.ff-lake {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: 0;
+  background: var(--ff-line);
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-lake);
+  box-shadow: var(--ff-shadow-card);
+  overflow: hidden;
+}
+
+.ff-hole {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--ff-ice);
+  color: var(--ff-ink);
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1;
+  cursor: default;
+  animation: ff-fade-in 0.32s both;
+  animation-delay: calc(var(--i, 0) * 9ms);
+}
+
+.ff-hole--ice {
+  cursor: pointer;
+}
+
+.ff-hole--ice:hover {
+  background: var(--ff-ice-hover);
+}
+
+.ff-hole--ice:active,
+.ff-hole.is-pressing {
+  background: var(--ff-line);
+}
+
+.ff-hole--num {
+  background: var(--ff-card);
+}
+
+.ff-hole--num.is-new {
+  animation: ff-flip 0.3s ease-out both;
+}
+
+.ff-hole--clue::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 3px var(--ff-sun);
+  pointer-events: none;
+}
+
+.ff-hole--zero {
+  color: var(--ff-muted);
+}
+
+.ff-hole--marked {
+  background: var(--ff-marked);
+}
+
+.ff-hole--marked::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ff-muted);
+  opacity: 0.75;
+}
+
+.ff-hole--marked.is-new {
+  animation: ff-grow-in 0.3s ease-out both;
+  animation-delay: calc(var(--m, 0) * 45ms);
+}
+
+.ff-hole--fish {
+  background: var(--ff-fish);
+}
+
+.ff-hole--special {
+  background: var(--ff-sun);
+}
+
+.ff-hole--fish.is-new svg {
+  animation: ff-fish-pop 0.55s var(--ff-ease-bounce) both;
+}
+
+.ff-hole--missed {
+  background: var(--ff-card);
+  box-shadow: inset 0 0 0 2.5px var(--ff-fish);
+  color: var(--ff-fish);
+}
+
+.ff-hole svg {
+  width: 56%;
+  height: auto;
+}
+
+.ff-reminder {
+  margin: 14px 0 16px;
+}
+
+/* ───────────────────────── Cards & buttons ───────────────────────── */
+.ff-card {
+  padding: 16px;
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-card);
+  background: var(--ff-card);
+  box-shadow: var(--ff-shadow-card);
+}
+
+.ff-card--flat {
+  box-shadow: none;
+}
+
+:where(.btn.ff-btn) {
+  margin: 0; /* zero specificity so layout classes (.ff-stack, mt-*) can space buttons */
+}
+
+.rtsdk .btn.ff-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-btn);
+  background: var(--ff-accent);
+  color: #fff;
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  box-shadow: var(--ff-shadow-btn);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s,
+    background 0.15s;
+  cursor: pointer;
+}
+
+.rtsdk .btn.ff-btn:hover:not(:disabled) {
+  background: var(--ff-accent-press);
+}
+
+.rtsdk .btn.ff-btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+.rtsdk .btn.ff-btn:disabled {
+  background: var(--ff-accent-disabled);
+  border-color: #6f7f8c;
+  box-shadow: 0 4px 0 #6f7f8c;
+  color: #f2f6ff;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.rtsdk .btn.ff-btn--outline {
+  background: var(--ff-card);
+  color: var(--ff-ink);
+}
+
+.rtsdk .btn.ff-btn--outline:hover:not(:disabled) {
+  background: var(--ff-marked);
+}
+
+.rtsdk .btn.ff-btn--danger {
+  background: var(--ff-danger);
+}
+
+.rtsdk .btn.ff-btn--danger:hover:not(:disabled) {
+  background: var(--ff-danger-press);
+}
+
+/* ───────────────────────── Result card ───────────────────────── */
+.ff-result {
+  margin-bottom: 18px;
+  animation: ff-rise 0.45s var(--ff-ease-bounce) both;
+}
+
+.ff-result__title {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.ff-result__title.is-perfect {
+  animation: ff-wiggle 0.7s ease-in-out 0.45s;
+  transform-origin: left center;
+}
+
+.ff-result__lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--ff-font-mono);
+  font-size: 13px;
+}
+
+.ff-result__line {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.ff-result__line--total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 2.5px dashed var(--ff-ink);
+  font-weight: 700;
+}
+
+.ff-result__note {
+  margin-top: 6px;
+}
+
+.ff-result__rank {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--ff-muted);
+}
+
+.ff-result__rank strong {
+  color: var(--ff-ink);
+}
+
+.ff-result .ff-btn {
+  margin-top: 16px;
+}
+
+.ff-result__out {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--ff-muted);
+}
+
+/* ───────────────────────── Tournament strip ───────────────────────── */
+.ff-tstrip {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border-radius: var(--ff-radius-card);
+  background: var(--ff-ink);
+  color: #e8eef3;
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ff-tstrip__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.ff-tstrip__title {
+  color: var(--ff-sun);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.ff-tstrip__rank {
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.ff-tstrip__delta {
+  color: var(--ff-sun);
+  margin-left: 4px;
+}
+
+.ff-tstrip__meta {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #c8d3dc;
+}
+
+/* ───────────────────────── Snow Fort strip & bar ───────────────────────── */
+.ff-fortstrip {
+  margin: 0 0 16px;
+}
+
+.ff-fortstrip__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.ff-fortstrip__title {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 19px;
+}
+
+.ff-fortstrip__amount {
+  font-size: 14px;
+  color: var(--ff-muted);
+}
+
+.ff-bar {
+  height: 14px;
+  border: var(--ff-outline);
+  border-radius: 999px;
+  background: var(--ff-card);
+  overflow: hidden;
+}
+
+.ff-bar__fill {
+  height: 100%;
+  background: var(--ff-accent);
+  border-radius: 999px;
+  transition: width 0.6s var(--ff-ease-out);
+}
+
+.ff-fortstrip .ff-copy {
+  margin: 8px 0 0;
+}
+
+/* ───────────────────────── Snow Fort drawer ───────────────────────── */
+.ff-fortpic {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-card);
+  box-shadow: var(--ff-shadow-card);
+  background: var(--ff-sky);
+  overflow: hidden;
+}
+
+.ff-fortpic .ff-piece {
+  fill: var(--ff-card);
+  stroke: var(--ff-ink);
+  stroke-width: 2.5;
+}
+
+.ff-fortpic .ff-flag {
+  fill: var(--ff-fish);
+  stroke: var(--ff-ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.ff-fort-progress__amount {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.ff-fort-progress .ff-copy {
+  margin-top: 8px;
+}
+
+.ff-you-card__main {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.ff-you-card .ff-copy {
+  margin-top: 4px;
+}
+
+.ff-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-card);
+  background: var(--ff-card);
+  overflow: hidden;
+}
+
+.ff-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 50px;
+  padding: 8px 16px;
+}
+
+.ff-list__row + .ff-list__row {
+  border-top: 2px solid var(--ff-ink);
+}
+
+.ff-section__name {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.ff-section__count {
+  margin-left: 6px;
+  font-family: var(--ff-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ff-muted);
+}
+
+.ff-chip-reached {
+  padding: 3px 12px;
+  border: var(--ff-outline);
+  border-radius: 999px;
+  background: var(--ff-sun);
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.ff-togo {
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ff-muted);
+}
+
+/* ───────────────────────── Leaderboards ───────────────────────── */
+.ff-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ff-pills--end {
+  justify-content: flex-end;
+}
+
+.ff-pill {
+  flex: 1 1 0;
+  min-height: 34px;
+  padding: 6px 4px;
+  white-space: nowrap;
+  border: var(--ff-outline);
+  border-radius: 999px;
+  background: var(--ff-card);
+  color: var(--ff-ink);
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ff-pill[aria-pressed="true"] {
+  background: var(--ff-sun);
+}
+
+.ff-pill--dark[aria-pressed="true"] {
+  background: var(--ff-ink);
+  color: var(--ff-card);
+}
+
+.ff-pill--small {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 4px 14px;
+  font-size: 11px;
+}
+
+.ff-lb-desc {
+  margin: 14px 0 16px;
+}
+
+.ff-pills--settings .ff-pill {
+  flex: 0 0 auto;
+  min-width: 52px;
+  padding: 6px 12px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.ff-pills--settings .ff-pill[aria-pressed="true"] {
+  background: var(--ff-ink);
+  color: var(--ff-card);
+}
+
+.ff-lb-row {
+  animation: ff-rise-small 0.3s ease-out both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.ff-lb-row__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ff-rank-chip {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--ff-ink);
+  color: #fff;
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.ff-rank-chip--top {
+  background: var(--ff-sun);
+  color: var(--ff-ink);
+  box-shadow: inset 0 0 0 2.5px var(--ff-ink);
+}
+
+.ff-lb-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.ff-lb-row__score {
+  flex-shrink: 0;
+  font-family: var(--ff-font-mono);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.ff-lb-row.is-you {
+  background: var(--ff-ink);
+  color: #fff;
+}
+
+.ff-lb-row.is-you .ff-rank-chip {
+  background: var(--ff-accent);
+  box-shadow: none;
+  color: #fff;
+}
+
+.ff-lb-row.is-you .ff-lb-row__score {
+  color: var(--ff-sun);
+}
+
+.ff-lb-gap {
+  justify-content: center;
+  min-height: 30px;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  color: var(--ff-muted);
+}
+
+.ff-empty {
+  padding: 18px 16px;
+  text-align: center;
+  color: var(--ff-muted);
+  font-size: 14px;
+}
+
+/* ───────────────────────── Badges ───────────────────────── */
+.ff-badge-group + .ff-badge-group {
+  margin-top: 22px;
+}
+
+.ff-badge-group__title {
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 2.5px solid var(--ff-ink);
+}
+
+.ff-badge-grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.ff-badge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+.ff-badge__icon {
+  display: grid;
+  place-items: center;
+  animation: ff-badge-pop 0.28s ease-out both;
+  animation-delay: var(--d, 0s);
+}
+
+.ff-badge__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ff-badge__icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.ff-badge.is-locked .ff-badge__icon img {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.ff-badge__name {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.ff-badge.is-locked .ff-badge__name {
+  color: var(--ff-muted);
+}
+
+.ff-tooltip {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: 50%;
+  z-index: 5;
+  width: max-content;
+  max-width: 180px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--ff-ink);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.ff-badge:hover .ff-tooltip,
+.ff-badge:focus-visible .ff-tooltip {
+  opacity: 1;
+}
+
+.ff-badge-grid > :nth-child(4n + 1) .ff-tooltip {
+  left: 0;
+  transform: none;
+}
+
+.ff-badge-grid > :nth-child(4n) .ff-tooltip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* ───────────────────────── Admin settings ───────────────────────── */
+.ff-setting__title {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.ff-setting .ff-copy {
+  margin-bottom: 10px;
+}
+
+.ff-divider {
+  border: 0;
+  border-top: 2.5px dashed var(--ff-ink);
+  margin: 20px 0;
+}
+
+.ff-warning {
+  padding: 12px 14px;
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-btn);
+  background: #fff4cc;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ff-warning code {
+  font-family: var(--ff-font-mono);
+  font-size: 11.5px;
+  word-break: break-all;
+}
+
+/* ───────────────────────── Modal ───────────────────────── */
+.ff-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--ff-pad);
+  background: rgba(16, 32, 46, 0.55);
+}
+
+.ff-modal {
+  width: 100%;
+  max-width: 340px;
+  padding: 18px;
+  border: var(--ff-outline);
+  border-radius: var(--ff-radius-card);
+  background: var(--ff-card);
+  box-shadow: var(--ff-shadow-card);
+  animation: ff-rise 0.3s var(--ff-ease-out) both;
+}
+
+.ff-modal__title {
+  font-family: var(--ff-font-display);
+  font-weight: 800;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.ff-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ff-modal__actions .ff-btn {
+  min-height: 56px;
+  font-size: 15px;
+}
+
+/* ───────────────────────── Keyframes ───────────────────────── */
+@keyframes ff-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ff-flip {
+  from {
+    transform: perspective(200px) rotateX(90deg);
+  }
+  to {
+    transform: perspective(200px) rotateX(0);
+  }
+}
+
+@keyframes ff-fish-pop {
+  0% {
+    transform: scale(0.3) rotate(-25deg);
+  }
+  60% {
+    transform: scale(1.18) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes ff-grow-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes ff-bump {
+  50% {
+    transform: scale(1.35);
+  }
+}
+
+@keyframes ff-rise {
+  from {
+    transform: translateY(18px);
+    opacity: 0;
+  }
+}
+
+@keyframes ff-rise-small {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+@keyframes ff-wiggle {
+  25% {
+    transform: rotate(2deg);
+  }
+  75% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes ff-badge-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Once the opening fade-in is done, holes that aren't revealing something new don't animate. */
+.ff-lake.is-settled .ff-hole:not(.is-new) {
+  animation: none;
+}

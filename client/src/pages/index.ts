@@ -1,2 +1,4 @@
 export * from "./Error";
-export * from "./Home";
+export * from "./FishingView";
+export * from "./FortView";
+export * from "./TrophyView";
