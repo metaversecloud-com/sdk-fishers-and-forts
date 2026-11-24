@@ -1,36 +1,34 @@
 # tofu/
 
-The AWS resources an SDK app owns, applied by **Terrakube** — not by the
-runner, and not from `infra-terraform`.
+AWS resources this app owns, applied by **Terrakube** (workspace
+`sdk-fishers-and-forts`, folder `tofu`, OpenTofu 1.12.12).
 
-App infrastructure used to be scattered across `infra-terraform`: the bucket in
-one workspace, its IAM in another, the cross-account grants in a third. Now that
-apps are GitOps-deployed, this directory keeps an app's infrastructure next to
-its code so a feature and the bucket it needs move in the same PR.
+Infrastructure for an SDK app used to live in `infra-terraform` — the bucket in
+whichever workspace happened to own it, the IAM in another, the grants to the
+other accounts in a third. Now that the app itself is GitOps-deployed, its
+infrastructure sits next to its code and moves in the same PR.
 
 ## What it creates
 
-For an app deployed to ECS in the three prod accounts and to EKS in dev:
-
 | Where | What |
 | --- | --- |
-| topia-sdk-prod `471112828260` | the S3 bucket and its bucket policy (public read, CORS, SSE-S3, ACLs off) |
-| topia-sdk-prod `471112828260` | `<bucket>-task-bucket` policy → `topia-prod-<svc>-task` |
-| stride-sdk-prod `637423291416` | `<bucket>-task-bucket` policy → `stride-prod-<svc>-task` |
-| schoolspace-prod `637423330669` | `<bucket>-task-bucket` policy → `sspace-prod-<svc>-task` |
-| dev / infra-sandbox `368076259134` | IRSA role for `sdk-apps-dev:<svc>-sa` |
+| topia-sdk-prod `471112828260` | S3 bucket `sdk-fishers-and-forts` (public read, CORS, SSE-S3, ACLs off) and its bucket policy |
+| topia-sdk-prod `471112828260` | `sdk-fishers-and-forts-task-bucket` policy → `topia-prod-fishforts0-task` |
+| stride-sdk-prod `637423291416` | `sdk-fishers-and-forts-task-bucket` policy → `stride-prod-fishforts0-task` |
+| schoolspace-prod `637423330669` | `sdk-fishers-and-forts-task-bucket` policy → `sspace-prod-fishforts0-task` |
+| dev / infra-sandbox `368076259134` | IRSA role `sdk-apps-dev-fishforts0-irsa` for `sdk-apps-dev:fishforts0-sa` |
 
 The bucket lives in **one** account; every other account reaches it
 cross-account, which needs a grant on both sides — an identity policy on the
-principal *and* a statement in the bucket policy. Inside the bucket's own
-account the identity policy alone suffices, so the bucket policy only names the
-foreign principals.
+principal *and* a statement in the bucket policy. Inside topia-sdk-prod the
+identity policy alone is enough, so the bucket policy only names the foreign
+principals.
 
 ## How four accounts work from one workspace
 
 Terrakube issues one web-identity JWT per job with subject
-`organization:topia-mgmt:workspace:<workspace>`. Every account already has a
-`terrakube-role` trusting `organization:topia-mgmt:workspace:*`, so the same
+`organization:topia-mgmt:workspace:sdk-fishers-and-forts`. Every account already has
+a `terrakube-role` trusting `organization:topia-mgmt:workspace:*`, so the same
 token assumes the role in each account directly — `providers.tf` declares one
 aliased provider per account and only overrides `role_arn`. No role chaining, no
 extra trust policies, no static keys.
@@ -39,32 +37,39 @@ Provider aliases cannot be generated from a map: adding an account means adding
 a provider block *and* the resources that use it, not just an entry in
 `var.accounts`.
 
-## Adapting this to your app
+## Wiring the app to the bucket
 
-1. `tofu/variables.tf` — set `app_name`, `bucket_name`, `ecs_service_name`
-   (the `<service_name><index>` key from `ecs_services` in infra-terraform) and
-   `eks_dev.service_account`.
-2. `tofu/backend.tf` and `.github/workflows/tofu.yml` — set the Terrakube
-   workspace name.
-3. Add the workspace to `TERRAKUBE_WORKSPACES_VCS` in Doppler, with
-   `folder: "tofu"`, `iac_type: "tofu"`, `iac_version: "1.11.5"` and
-   `aws_dynamic_credentials: true`. That last flag is the whole AWS credential
-   setup — it references the shared `aws-dynamic-credentials` collection
-   (infra-terrkube `03-terrakube/collections.tf`), so there are no per-workspace
-   ENV variables to set.
-4. Wire the bucket into the app. `server/routes.ts` reads `S3_BUCKET`:
-   - **dev** — put it in the overlay ConfigMap, and annotate the pod's
-     ServiceAccount with the `dev_irsa_role_arn` output
-     (`eks.amazonaws.com/role-arn`). Without the annotation the pod falls back
-     to the node role and every call is AccessDenied.
-   - **prod** — the `secrets` map for the service in each account's
-     `ecs_services` input.
-5. If the app needs **no** bucket, delete this directory, `scripts/terrakube.sh`
-   and `.github/workflows/tofu.yml`.
+`server/routes.ts` reads `S3_BUCKET`. Set it:
+
+- **dev** — `apps/sdk-fishers-and-forts/envs/dev/fishforts0-config.yaml` in metaversecloud-com/sdk-gitops, plus the
+  `fishforts0-sa` ServiceAccount annotated with the `dev_irsa_role_arn`
+  output. Without the annotation the pod falls back to the node role and every
+  call is AccessDenied.
+- **prod** — the `secrets` map for the `fishforts` service in each account's
+  `ecs_services` input (infra-terraform).
 
 ## Running it
 
-Actions → **Tofu (plan / apply / destroy)**. The workflow calls the Terrakube
-API and waits for the job; it never runs tofu on the runner. It needs a
-`TERRAKUBE_TOKEN` secret, org-level in metaversecloud-com alongside the `PAT`
-and `AWS_ROLE_ARN` secrets the release workflows already use.
+Actions → **Tofu (plan / apply / destroy)** → pick `plan`, `apply` or
+`destroy`. The workflow calls the Terrakube API and waits; it never runs tofu on
+the runner.
+
+Requires:
+
+| Kind | Name | Notes |
+| --- | --- | --- |
+| Secret | `TERRAKUBE_TOKEN` | Terrakube token. Org-level secret in metaversecloud-com, same as `PAT` and `AWS_ROLE_ARN` which this repo's other workflows already read. |
+| Variable | `TERRAKUBE_WORKSPACE_ID` | Optional — resolved by name when unset. |
+
+Nothing to set on the workspace itself. The AWS credential ENV wiring comes
+from the shared `aws-dynamic-credentials` collection (infra-terrkube
+`03-terrakube/collections.tf`); the workspace opts in with
+`"aws_dynamic_credentials": true` in `TERRAKUBE_WORKSPACES_VCS`.
+
+## Adding this to another app
+
+Copy `tofu/`, `scripts/terrakube.sh` and `.github/workflows/tofu.yml` from
+`sdk-ai-boilerplate`, then change the defaults in `variables.tf`: `app_name`,
+`bucket_name`, `ecs_service_name` and `eks_dev.service_account`. Also update the
+workspace name in `backend.tf` and `TK_WORKSPACE_NAME` in the workflow, and add
+the workspace to `TERRAKUBE_WORKSPACES_VCS` in Doppler.
