@@ -6,7 +6,7 @@ import { FortBar } from "@/components";
 // utils
 import { fmt } from "@/utils";
 
-/** Snow Fort progress strip in the Fishing drawer (spec §5.1.5). Display-only; the "See the Snow Fort" button opens the drawer. */
+/** Snow Fort progress strip in the Fishing drawer. Display-only; the "See the Snow Fort" button opens the drawer. */
 export const FortStrip = ({ fort }: { fort: FortSummary }) => (
   <div className="ff-fortstrip">
     <div className="ff-fortstrip__head">

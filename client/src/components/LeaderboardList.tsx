@@ -12,7 +12,7 @@ const Row = ({ row, index, label }: { row: LeaderboardRow; index: number; label?
   </li>
 );
 
-/** One outlined card, 2px lines between rows, top 25 then the player's own row (spec §8, §11). */
+/** One outlined card, 2px lines between rows, top 25 then the player's own row. */
 export const LeaderboardList = ({ board, emptyText }: { board: LeaderboardView; emptyText: string }) => {
   if (!board.rows.length) return <p className="ff-list ff-empty">{emptyText}</p>;
   return (

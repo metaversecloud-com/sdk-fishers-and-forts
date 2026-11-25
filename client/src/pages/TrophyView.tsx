@@ -18,7 +18,7 @@ const BOARDS: { key: LeaderboardKey; label: string }[] = [
   { key: "fortBuilders", label: "Fort Builders" },
 ];
 
-/** The Trophy drawer, route `/trophy`: Leaderboards (spec §8) and Badges (spec §9). */
+/** The Trophy drawer, route `/trophy`: Leaderboards and Badges. */
 export const TrophyView = () => {
   const dispatch = useContext(GlobalDispatchContext);
   const { trophy, hasInteractiveParams } = useContext(GlobalStateContext);

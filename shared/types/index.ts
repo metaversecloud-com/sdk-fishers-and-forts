@@ -1,5 +1,5 @@
 /**
- * Shared types between client and server. See plan.md §5.3.
+ * Shared types between client and server.
  */
 
 // ───────────────────────── Lake ─────────────────────────
@@ -239,6 +239,5 @@ export interface TrophyState {
 export interface AdminState {
   settings: WorldSettings;
   missingSlots: number[]; // fort blocks with no asset in the world (admin warning)
-  flagMissing: boolean;
   fortNumber: number;
 }

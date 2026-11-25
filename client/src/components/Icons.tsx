@@ -1,11 +1,4 @@
 /** Inline SVG icons (decorative; callers provide accessible text). */
-export const FishIcon = () => (
-  <svg viewBox="0 0 32 20" aria-hidden="true" focusable="false">
-    <path d="M2 10c4-6 12-8 18-4l6-5v18l-6-5c-6 4-14 2-18-4z" fill="currentColor" />
-    <circle cx="9" cy="8.5" r="1.6" fill="#ff7a45" />
-  </svg>
-);
-
 export const LockIcon = () => (
   <svg viewBox="0 0 14 16" aria-hidden="true" focusable="false">
     <rect x="1" y="7" width="12" height="9" rx="2" fill="currentColor" />

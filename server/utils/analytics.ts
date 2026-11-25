@@ -2,7 +2,7 @@ import { Credentials } from "../types/index.js";
 
 export type Analytic = { analyticName: string; profileId?: string; uniqueKey?: string; urlSlug?: string; incrementBy?: number };
 
-/** One analytics entry carrying profileId + uniqueKey + urlSlug (spec §14). */
+/** One analytics entry carrying profileId + uniqueKey + urlSlug. */
 export const analytic = (analyticName: string, credentials: Credentials, incrementBy?: number): Analytic => {
   const { profileId, urlSlug } = credentials;
   const entry: Analytic = { analyticName, profileId, uniqueKey: profileId, urlSlug };

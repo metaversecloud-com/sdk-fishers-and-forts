@@ -174,7 +174,6 @@ describe("Fishing drawer", () => {
 describe("Snow Fort", () => {
   const setupPieces = (skip: number[] = []) => {
     for (let slot = 1; slot <= 50; slot++) if (!skip.includes(slot)) fake.addAsset(SLUG, `${UNIQUE_NAMES.fortBlockPrefix}${slot}`);
-    fake.addAsset(SLUG, UNIQUE_NAMES.fortFlag);
   };
 
   test("crossing a brick threshold swaps the brick image, sparkles it and toasts the player", async () => {
@@ -293,7 +292,7 @@ describe("Admin", () => {
 
     const settings = await get("/admin/settings");
     expect(settings.status).toBe(200);
-    expect(settings.body.data).toMatchObject({ missingSlots: [12, 27], flagMissing: true });
+    expect(settings.body.data).toMatchObject({ missingSlots: [12, 27] });
 
     expect((await post("/admin/settings", { fortGoal: 12345 })).status).toBe(400);
     const lowered = await post("/admin/settings", { fortGoal: 1000 });

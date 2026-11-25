@@ -1,5 +1,5 @@
 /**
- * UI sound effects (spec §12). Files are TBD from Shelby — until they land these are no-ops,
+ * UI sound effects. Files are TBD from Shelby — until they land these are no-ops,
  * so call sites are already wired up.
  */
 export type SfxName = "drill" | "fish" | "specialFish" | "number" | "lakeFinished" | "perfectLake" | "brickPlaced" | "milestone";

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { BadgeView } from "@shared/types";
 
 /**
- * Topia-standard badges UI: four across, name only, description as a tooltip (spec §9).
+ * Topia-standard badges UI: four across, name only, description as a tooltip.
  * Badges arrive already sorted by the catalog's metadata.sortOrder; groups appear in that same order.
  */
 export const BadgeGrid = ({ badges }: { badges: BadgeView[] }) => {

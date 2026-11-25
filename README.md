@@ -24,12 +24,11 @@ Place one scene per world:
 | Fishing Shack (key asset) | `Fishers&Forts_keyAsset` | Iframe drawer → `{appUrl}/` |
 | Fort Sign | `Fishers&Forts_fort` | Iframe drawer → `{appUrl}/fort` |
 | Trophy | none needed | Iframe drawer → `{appUrl}/trophy` |
-| Fort blocks 1–50 | `Fishers&Forts_fortBlock_1` … `Fishers&Forts_fortBlock_50` | Not clickable. Web-image asset, transparent to start. Slots 33–34 are the tower tops |
-| Flag | `Fishers&Forts_fortFlag` | Not clickable. Web-image asset, transparent to start |
+| Fort blocks 1–50 | `Fishers&Forts_fortBlock_1` … `Fishers&Forts_fortBlock_50` | Not clickable. Web-image asset, transparent to start. Slots 33–34 are the tower tops; slot 50 is the flag block |
 
-Slot order (Castle): foundation 1–8 (bottom row, left → right), walls 9–20, towers 21–34 (33/34 = tower tops), keep 35–50, flag above 50. A missing or deleted block never breaks the game; it's listed in Admin Settings and restored automatically once an asset with that unique name is back.
+Slot order (Castle): foundation 1–8 (bottom row, left → right), walls 9–20, towers 21–34 (33/34 = tower tops), keep 35–50 (50 = the flag block). A missing or deleted block never breaks the game; it's listed in Admin Settings and restored automatically once an asset with that unique name is back.
 
-Piece art is served from `client/public/assets/fort/winter/` (`brick.png`, `tower-top.png`, `flag.png`, `transparent.png`; placeholders until final art). Override the base URL with `FORT_ART_BASE_URL`.
+Piece art is served from the `sdk-fishers-and-forts` S3 bucket (same for every ecosystem): `https://sdk-fishers-and-forts.s3.amazonaws.com/{theme}/` with `brick.png`, `tower-top.png`, `flag.png`, `transparent.png`. Override the base URL with `FORT_ART_BASE_URL`.
 
 ## API
 

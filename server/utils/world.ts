@@ -62,7 +62,7 @@ const withDefaults = (data: Partial<WorldDataObject>, now: number): WorldDataObj
 };
 
 /**
- * Close out the previous day (spec §5.4.6): freeze its boards as "yesterday", keep the tournament
+ * Close out the previous day: freeze its boards as "yesterday", keep the tournament
  * top 10 for lazy badges, clear today's boards. Exactly once per day via a held lock keyed on the day.
  */
 const rollover = async (world: WorldInstance, data: WorldDataObject, credentials: Credentials, today: string) => {

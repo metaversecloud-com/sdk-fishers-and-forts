@@ -5,11 +5,10 @@
  * without any cached ids: pieces whose image is wrong get swapped, missing slots are reported (never fatal).
  */
 import { BRICK_PARTICLE_NAME, UNIQUE_NAMES } from "@shared/constants.js";
-import { SLOT_COUNT, pieceTypeForSlot } from "@shared/fort/fort.js";
+import { SLOT_COUNT, pieceTypeForSlot, type PieceType } from "@shared/fort/fort.js";
 import type { FortTheme } from "@shared/types/index.js";
-import { getBaseUrl } from "./getBaseUrl.js";
 
-type Piece = "brick" | "towerTop" | "flag" | "transparent";
+type Piece = PieceType | "transparent";
 
 const FILES: Record<Piece, string> = {
   brick: "brick.png",
@@ -18,11 +17,10 @@ const FILES: Record<Piece, string> = {
   transparent: "transparent.png",
 };
 
-/** Piece art URL. Served from client/public/assets/fort/{theme}/ (override with FORT_ART_BASE_URL). */
-export const pieceArtUrl = (host: string, theme: FortTheme, piece: Piece) => {
-  const base = process.env.FORT_ART_BASE_URL || `${getBaseUrl(host)}/assets/fort`;
-  return `${base}/${theme}/${FILES[piece]}`;
-};
+/** Piece art lives in the sdk-fishers-and-forts S3 bucket, shared by every ecosystem (override with FORT_ART_BASE_URL). */
+const FORT_ART_BASE_URL = process.env.FORT_ART_BASE_URL || "https://sdk-fishers-and-forts.s3.amazonaws.com";
+
+export const pieceArtUrl = (theme: FortTheme, piece: Piece) => `${FORT_ART_BASE_URL}/${theme}/${FILES[piece]}`;
 
 /** Slot number from a unique name: `Fishers&Forts_fortBlock_7` / `…_07` → 7. Null if not a valid slot. */
 export const parseSlot = (uniqueName: string | undefined) => {
@@ -43,22 +41,20 @@ const runLimited = async <T>(tasks: (() => Promise<T>)[], limit = 8) => {
 
 export const reconcileFortPieces = async ({
   world,
-  host,
   theme,
   bricksPlaced,
   sparkleSlots = [],
 }: {
   world: any;
-  host: string;
   theme: FortTheme;
   bricksPlaced: number;
   /** Newly placed slots that get the sparkle particle. */
   sparkleSlots?: number[];
 }) => {
-  const [blocks, flags] = await Promise.all([
-    world.fetchDroppedAssetsWithUniqueName({ uniqueName: UNIQUE_NAMES.fortBlockPrefix, isPartial: true }),
-    world.fetchDroppedAssetsWithUniqueName({ uniqueName: UNIQUE_NAMES.fortFlag }),
-  ]);
+  const blocks = await world.fetchDroppedAssetsWithUniqueName({
+    uniqueName: UNIQUE_NAMES.fortBlockPrefix,
+    isPartial: true,
+  });
 
   const bySlot = new Map<number, any[]>();
   for (const asset of blocks || []) {
@@ -74,26 +70,22 @@ export const reconcileFortPieces = async ({
   };
 
   for (const [slot, assets] of bySlot) {
-    const url = pieceArtUrl(host, theme, slot <= bricksPlaced ? pieceTypeForSlot(slot) : "transparent");
+    const url = pieceArtUrl(theme, slot <= bricksPlaced ? pieceTypeForSlot(slot) : "transparent");
     assets.forEach((a) => setImage(a, url));
   }
-  const flagUrl = pieceArtUrl(host, theme, bricksPlaced >= SLOT_COUNT ? "flag" : "transparent");
-  (flags || []).forEach((a: any) => setImage(a, flagUrl));
 
   const results = await runLimited(tasks);
   const failed = results.filter((r) => r.status === "rejected").length;
   if (failed) console.error(`reconcileFortPieces: ${failed} image update(s) failed; the next pass will retry`);
 
-  const sparkleTargets = [
-    ...sparkleSlots.flatMap((s) => bySlot.get(s) || []),
-    ...(sparkleSlots.includes(SLOT_COUNT) ? flags || [] : []),
-  ];
-  sparkleTargets.forEach((asset: any) =>
-    world
-      .triggerParticle({ name: BRICK_PARTICLE_NAME, duration: 3, position: asset.position })
-      .catch((error: unknown) => console.error("reconcileFortPieces: particle failed", error)),
-  );
+  sparkleSlots
+    .flatMap((s) => bySlot.get(s) || [])
+    .forEach((asset: any) =>
+      world
+        .triggerParticle({ name: BRICK_PARTICLE_NAME, duration: 3, position: asset.position })
+        .catch((error: unknown) => console.error("reconcileFortPieces: particle failed", error)),
+    );
 
   const missingSlots = Array.from({ length: SLOT_COUNT }, (_, i) => i + 1).filter((s) => !bySlot.has(s));
-  return { missingSlots, flagFound: (flags || []).length > 0, updated: tasks.length - failed };
+  return { missingSlots, updated: tasks.length - failed };
 };

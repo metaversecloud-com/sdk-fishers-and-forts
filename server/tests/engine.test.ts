@@ -4,7 +4,7 @@ import { NEIGHBORS, isAdjacent } from "@shared/lake/grid.js";
 import { newProgress, toLakeView } from "@shared/lake/view.js";
 import type { Lake } from "@shared/types/index.js";
 
-describe("lake generation (spec §4)", () => {
+describe("lake generation", () => {
   test("lakes follow the generation rules", () => {
     for (let i = 0; i < 200; i++) {
       const lake = generateLake(`gen-${i}`, true);
@@ -26,7 +26,7 @@ describe("lake generation (spec §4)", () => {
     expect(generateLake("t-1", false).special).toBeNull();
   });
 
-  test("solver catches all 7 on most lakes (spec: ~79%)", () => {
+  test("solver catches all 7 on most lakes (~79%)", () => {
     let perfect = 0;
     for (let i = 0; i < 300; i++) if (solveLake(generateLake(`stat-${i}`, false)) === 7) perfect++;
     expect(perfect / 300).toBeGreaterThan(0.65);

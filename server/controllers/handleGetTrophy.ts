@@ -12,7 +12,7 @@ import {
   runOpenChecks,
 } from "../utils/index.js";
 
-/** GET /api/trophy?open=true&forceRefreshInventory= — Leaderboards + Badges (spec §8, §9). */
+/** GET /api/trophy?open=true&forceRefreshInventory= — Leaderboards + Badges. */
 export const handleGetTrophy = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);

@@ -1,5 +1,5 @@
 /**
- * Badges (spec §9). The ecosystem inventory catalog is the source of truth for everything shown:
+ * Badges. The ecosystem inventory catalog is the source of truth for everything shown:
  * name (metadata.displayName), description, icon, group (metadata.group) and order (metadata.sortOrder).
  * The code only knows WHEN each badge is earned, keyed by the catalog item's exact `name`.
  */

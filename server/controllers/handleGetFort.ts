@@ -3,7 +3,7 @@ import { SECTIONS, brickThreshold } from "@shared/fort/fort.js";
 import type { FortView } from "@shared/types/index.js";
 import { errorHandler, fortSummaryOf, getCredentials, getVisitorData, getWorldData, runOpenChecks } from "../utils/index.js";
 
-/** GET /api/fort?open=true — the Snow Fort drawer payload (spec §6.4). */
+/** GET /api/fort?open=true — the Snow Fort drawer payload. */
 export const handleGetFort = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);

@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 
-/** One round outlined pill holding two options; the selected one is filled dark (spec §11). */
+/** One round outlined pill holding two options; the selected one is filled dark. */
 export const PillSwitch = ({
   label,
   options,

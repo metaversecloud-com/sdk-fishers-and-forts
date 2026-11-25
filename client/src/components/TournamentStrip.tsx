@@ -1,6 +1,6 @@
 import type { TournamentSummary } from "@shared/types";
 
-/** Dark tournament strip under the lake, whichever lake is showing (spec §5.4.5). */
+/** Dark tournament strip under the lake, whichever lake is showing. */
 export const TournamentStrip = ({ tournament }: { tournament: TournamentSummary }) => {
   const { rank, rankDelta, fish, lakesLeft, lakesPerDay } = tournament;
   const delta = rankDelta ? (rankDelta > 0 ? `▲${rankDelta}` : `▼${Math.abs(rankDelta)}`) : "";

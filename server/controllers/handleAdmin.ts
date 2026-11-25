@@ -18,17 +18,16 @@ import {
   Visitor,
 } from "../utils/index.js";
 
-/** All admin routes check isAdmin server-side (spec §7, plan 6.3). */
+/** All admin routes check isAdmin server-side. */
 const requireAdmin = async (credentials: Credentials) => {
   const visitor = await Visitor.get(credentials.visitorId, credentials.urlSlug, { credentials });
   if (!(visitor as any)?.isAdmin) throw Object.assign(new Error("Admins only"), { status: 403 });
   return visitor;
 };
 
-const adminState = (world: WorldDataObject, missingSlots: number[], flagMissing: boolean): AdminState => ({
+const adminState = (world: WorldDataObject, missingSlots: number[]): AdminState => ({
   settings: world.settings,
   missingSlots,
-  flagMissing,
   fortNumber: world.fort.fortNumber,
 });
 
@@ -38,13 +37,12 @@ export const handleGetAdminSettings = async (req: Request, res: Response) => {
     const credentials = getCredentials(req.query);
     await requireAdmin(credentials);
     const { world: worldInstance, data } = await getWorldData(credentials);
-    const { missingSlots, flagFound } = await reconcileFortPieces({
+    const { missingSlots } = await reconcileFortPieces({
       world: worldInstance,
-      host: req.hostname,
       theme: data.fort.theme,
       bricksPlaced: data.fort.bricksPlaced,
     });
-    return res.json({ success: true, data: adminState(data, missingSlots, !flagFound) });
+    return res.json({ success: true, data: adminState(data, missingSlots) });
   } catch (error) {
     return errorHandler({ error, functionName: "handleGetAdminSettings", message: "Error loading admin settings", req, res });
   }
@@ -79,7 +77,7 @@ export const handleUpdateAdminSettings = async (req: Request, res: Response) => 
 
         if (tournamentLakesPerDay !== undefined) patch["settings.tournamentLakesPerDay"] = tournamentLakesPerDay as TournamentLakesPerDay;
         if (fortGoal !== undefined && fortGoal !== world.settings.fortGoal) {
-          // Re-space the remaining bricks between the current snow and the new goal (spec §7).
+          // Re-space the remaining bricks between the current snow and the new goal.
           const spacing = { fromSnow: fort.worldSnow, fromBricks: fort.bricksPlaced };
           bricksAfter = bricksForSnow(fort.worldSnow, fortGoal, spacing, fort.bricksPlaced);
           patch["settings.fortGoal"] = fortGoal as FortGoal;
@@ -104,22 +102,21 @@ export const handleUpdateAdminSettings = async (req: Request, res: Response) => 
     });
 
     const sparkleSlots = Array.from({ length: result.bricksAfter - result.bricksBefore }, (_, i) => result.bricksBefore + i + 1);
-    const { missingSlots, flagFound } = await reconcileFortPieces({
+    const { missingSlots } = await reconcileFortPieces({
       world: worldInstance,
-      host: req.hostname,
       theme: updated.fort.theme,
       bricksPlaced: updated.fort.bricksPlaced,
       sparkleSlots,
     });
     fireMilestoneToasts(worldInstance, result.milestonesReached, result.completed);
 
-    return res.json({ success: true, data: { ...adminState(updated, missingSlots, !flagFound), fort: fortSummaryOf(updated) } });
+    return res.json({ success: true, data: { ...adminState(updated, missingSlots), fort: fortSummaryOf(updated) } });
   } catch (error) {
     return errorHandler({ error, functionName: "handleUpdateAdminSettings", message: "Error saving admin settings", req, res });
   }
 };
 
-/** POST /api/admin/start-new-fort — World Snow back to zero, every brick disappears (spec §7). */
+/** POST /api/admin/start-new-fort — World Snow back to zero, every brick disappears. */
 export const handleStartNewFort = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
@@ -137,20 +134,19 @@ export const handleStartNewFort = async (req: Request, res: Response) => {
       }),
     });
 
-    const { missingSlots, flagFound } = await reconcileFortPieces({
+    const { missingSlots } = await reconcileFortPieces({
       world: worldInstance,
-      host: req.hostname,
       theme: updated.fort.theme,
       bricksPlaced: 0,
     });
 
-    return res.json({ success: true, data: { ...adminState(updated, missingSlots, !flagFound), fort: fortSummaryOf(updated) } });
+    return res.json({ success: true, data: { ...adminState(updated, missingSlots), fort: fortSummaryOf(updated) } });
   } catch (error) {
     return errorHandler({ error, functionName: "handleStartNewFort", message: "Error starting a new fort", req, res });
   }
 };
 
-/** POST /api/admin/reset-leaderboard — clears Fort Builders (the only resettable board, spec §8). */
+/** POST /api/admin/reset-leaderboard — clears Fort Builders (the only resettable board). */
 export const handleResetLeaderboard = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);

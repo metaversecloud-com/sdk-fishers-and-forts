@@ -13,7 +13,7 @@ import { ErrorType } from "@/context/types";
 import { backendAPI, fmt, setErrorMessage, setGameState } from "@/utils";
 
 /**
- * Admin Settings (spec §7), opened from the gear in the Fishing drawer header.
+ * Admin Settings, opened from the gear in the Fishing drawer header.
  * Body replaced with the app's settings per Lina 11/20.
  */
 export const AdminView = () => {
@@ -63,30 +63,21 @@ export const AdminView = () => {
   };
 
   if (!state) return <Loading />;
-  const { settings, missingSlots, flagMissing } = state;
+  const { settings, missingSlots } = state;
 
   return (
     <div>
       <Banner first>ADMINS ONLY</Banner>
 
-      {(missingSlots.length > 0 || flagMissing) && (
+      {missingSlots.length > 0 && (
         <div className="ff-warning mb-5" role="alert">
           <strong>Some fort pieces are missing from this world.</strong>{" "}
-          {missingSlots.length > 0 && (
-            <>
-              Missing blocks: {missingSlots.join(", ")}. Re-add an asset with unique name{" "}
-              <code>
-                {UNIQUE_NAMES.fortBlockPrefix}
-                {missingSlots[0]}
-              </code>{" "}
-              (and so on) and it will be fixed automatically.{" "}
-            </>
-          )}
-          {flagMissing && (
-            <>
-              The flag (<code>{UNIQUE_NAMES.fortFlag}</code>) is missing.
-            </>
-          )}
+          Missing blocks: {missingSlots.join(", ")}. Re-add an asset with unique name{" "}
+          <code>
+            {UNIQUE_NAMES.fortBlockPrefix}
+            {missingSlots[0]}
+          </code>{" "}
+          (and so on) and it will be fixed automatically.
         </div>
       )}
 

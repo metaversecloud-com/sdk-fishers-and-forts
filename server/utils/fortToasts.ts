@@ -1,4 +1,4 @@
-/** World toasts for fort milestones (spec §5.7) — fired only by the request whose write crossed them. */
+/** World toasts for fort milestones — fired only by the request whose write crossed them. */
 const MILESTONE_TEXT: Record<string, string> = {
   foundation: "The Snow Fort's foundation is finished! Come see it.",
   walls: "The Snow Fort's walls are finished! Come see it.",

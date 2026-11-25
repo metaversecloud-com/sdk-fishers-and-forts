@@ -22,7 +22,7 @@ import { ErrorType } from "@/context/types";
 // utils
 import { backendAPI, firstOpen, playSfx, setErrorMessage, setGameState } from "@/utils";
 
-/** The Fishing drawer (spec §5), route `/` (key asset). */
+/** The Fishing drawer, route `/` (key asset). */
 export const FishingView = () => {
   const navigate = useNavigate();
   const { search } = useLocation();

@@ -3,7 +3,7 @@ import { parseSlot } from "../utils/fortPieces.js";
 
 const even = { fromSnow: 0, fromBricks: 0 };
 
-describe("Snow Fort math (spec §6)", () => {
+describe("Snow Fort math", () => {
   test("one brick per 600 snow at the default goal", () => {
     expect(brickThreshold(1, 30000, even)).toBe(600);
     expect(brickThreshold(50, 30000, even)).toBe(30000);
@@ -26,9 +26,10 @@ describe("Snow Fort math (spec §6)", () => {
     expect(sectionsCrossed(7, 21).map((s) => s.key)).toEqual(["foundation", "walls"]);
   });
 
-  test("castle layout has 50 unique slots with tower tops at 33/34", () => {
+  test("castle layout has 50 unique slots with tower tops at 33/34 and the flag block at 50", () => {
     expect(CASTLE_LAYOUT.map((p) => p.slot)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1));
     expect(CASTLE_LAYOUT.filter((p) => p.type === "towerTop").map((p) => p.slot)).toEqual([33, 34]);
+    expect(CASTLE_LAYOUT.filter((p) => p.type === "flag").map((p) => p.slot)).toEqual([50]);
   });
 
   test("unique name parsing tolerates padding and ignores junk", () => {
@@ -36,6 +37,5 @@ describe("Snow Fort math (spec §6)", () => {
     expect(parseSlot("Fishers&Forts_fortBlock_07")).toBe(7);
     expect(parseSlot("Fishers&Forts_fortBlock_51")).toBeNull();
     expect(parseSlot("Fishers&Forts_fortBlock_7 copy")).toBeNull();
-    expect(parseSlot("Fishers&Forts_fortFlag")).toBeNull();
   });
 });

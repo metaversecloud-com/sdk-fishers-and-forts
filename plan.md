@@ -47,7 +47,7 @@ Other entry points: the **Fort Sign** opens the Snow Fort drawer and the **Troph
 - **Tournament lake**: a random lake. All fish are regular. It counts toward the day it is **finished**, not the day it was started.
 - **ET day key**: `YYYY-MM-DD` in `America/New_York`. Reuse `etDayKey()` from `sdk-birdwatch/server/utils/mysteryBird/pickTodayPuzzle.ts`.
 - **World Snow**: the world's running snow total for the current fort. It is never spent or lost, only reset when an admin starts a new fort.
-- **Slot**: a brick's position in the build order (1–50). Foundation is 1–8, Walls 9–20, Towers 21–34 (33 and 34 are tower tops), Keep 35–50. The **flag** is not a slot; it appears with slot 50.
+- **Slot**: a brick's position in the build order (1–50). Foundation is 1–8, Walls 9–20, Towers 21–34 (33 and 34 are tower tops), Keep 35–50. Slot 50 is the **flag block** (the last keep block with the flag on top).
 - **Brick threshold**: brick *n* appears when `worldSnow >= goal * n / 50` (600 snow per brick at the default 30,000).
 
 ## 4. Decisions
@@ -56,7 +56,7 @@ Other entry points: the **Fort Sign** opens the Snow Fort drawer and the **Troph
 
 **Question:** should the 50 bricks already exist in the scene, with the app swapping each one's image when it's earned, or should the app drop new assets as bricks are earned?
 
-**Decision: pre-place all 50 pieces (and the flag) in the scene with a transparent image, and swap to the snow art with `droppedAsset.updateWebImageLayers()` when earned.** Lina builds the scene by hand.
+**Decision: pre-place all 50 pieces in the scene with a transparent image, and swap to the snow art with `droppedAsset.updateWebImageLayers()` when earned.** Lina builds the scene by hand.
 
 | | Pre-placed + image swap | Drop on earn |
 |---|---|---|
@@ -73,7 +73,7 @@ The SDK has no bulk image-update or bulk drop, so both options cost one API call
 - **Can a scene comfortably hold 50 extra assets?** Yes.
 - **Do other players see new bricks live?** Yes, without a reload. Verify on dev during Phase 3.
 
-**Piece art.** Piece images (brick, tower top, flag, transparent) are served from the app (`client/public/assets/fort/*.png`, resolved against the app's base URL) and listed in `shared/fort/themes.ts`. Placeholders ship until final art lands; swapping art is a file replace, no world edits.
+**Piece art.** Piece images (brick, tower top, flag, transparent) are served from the `sdk-fishers-and-forts` S3 bucket (`{theme}/*.png`, same for every ecosystem) and listed in `shared/fort/themes.ts`. Placeholders ship until final art lands; swapping art is a file replace, no world edits.
 
 **How it scales to future themes and layouts (§6.5, §11 re-theming):**
 
@@ -87,8 +87,8 @@ The SDK has no bulk image-update or bulk drop, so both options cost one API call
 
 **Missing or duplicate pieces (someone deletes or copies a block by accident).** The app never caches piece IDs and never trusts a "last rendered" counter. Instead, every render is a **reconcile pass**:
 
-1. One `world.fetchDroppedAssetsWithUniqueName({ uniqueName: "Fishers&Forts_fortBlock_", isPartial: true })` returns every block in the world. Parse the slot number from the suffix (`Fishers&Forts_fortBlock_7` and `…_07` both mean slot 7; anything unparseable or outside 1–50 is ignored). The flag is one exact lookup of `Fishers&Forts_fortFlag`.
-2. For each piece, the desired image is the piece art if `slot <= bricksPlaced` (flag: if `bricksPlaced === 50`), else transparent. Only pieces whose current layer URL differs get an `updateWebImageLayers()` call, so a pass with nothing to fix costs one read.
+1. One `world.fetchDroppedAssetsWithUniqueName({ uniqueName: "Fishers&Forts_fortBlock_", isPartial: true })` returns every block in the world. Parse the slot number from the suffix (`Fishers&Forts_fortBlock_7` and `…_07` both mean slot 7; anything unparseable or outside 1–50 is ignored).
+2. For each piece, the desired image is the piece art if `slot <= bricksPlaced`, else transparent. Only pieces whose current layer URL differs get an `updateWebImageLayers()` call, so a pass with nothing to fix costs one read.
 3. Slots 1–50 with no matching asset are reported back to the caller (not stored). Nothing errors: the brick count, snow math, milestones and drawer picture are driven by `bricksPlaced`, not by what exists in the world. Duplicates of the same slot are both updated (harmless).
 4. Admin Settings shows a warning when any slot is missing ("Missing fort blocks: 12, 27. Re-add an asset with unique name `Fishers&Forts_fortBlock_12`."). Once re-added, the next pass restores its image automatically.
 
@@ -140,7 +140,6 @@ All placed as one scene, built by hand by Lina. One instance per world.
 | Fort Sign | `Fishers&Forts_fort` | Iframe drawer → app `/fort` |
 | Trophy | none needed | Iframe drawer → app `/trophy` |
 | Fort blocks 1–50 | `Fishers&Forts_fortBlock_1` … `Fishers&Forts_fortBlock_50` | Not clickable. Starts transparent. Slots 33–34 are tower tops, the rest are bricks (type derived from slot in code) |
-| Flag | `Fishers&Forts_fortFlag` | Not clickable. Starts transparent, appears with slot 50 |
 
 **Which drawer to show (decided 11/20, standard for all SDK apps):** path routes in `App.tsx`, not search params or unique names: `/` → Fishing (key asset), `/fort` → Snow Fort, `/trophy` → Trophy. Drawer-to-drawer switches (§3.5) navigate between these paths and carry the query string so the session params survive.
 
@@ -203,7 +202,7 @@ Example World data object:
 
 **3.1 Earning snow**: snow goes to `fort.worldSnow` and the player's `snowAdded` / `snowThisFort`, in one locked world write per lake finish (§4.4).
 
-**3.2 Bricks in the world**: after the write, if `bricksPlaced` increased, run the reconcile pass (§4.1), then trigger a sparkle particle (`world.triggerParticle`) at each newly placed piece. Missing slots are skipped and reported, never fatal. At slot 50 the flag appears too. Changing the goal mid-fort re-spaces the remaining bricks: `bricksPlaced` never decreases, and lowering the goal may place several bricks at once on save.
+**3.2 Bricks in the world**: after the write, if `bricksPlaced` increased, run the reconcile pass (§4.1), then trigger a sparkle particle (`world.triggerParticle`) at each newly placed piece. Missing slots are skipped and reported, never fatal. Slot 50 is the flag block. Changing the goal mid-fort re-spaces the remaining bricks: `bricksPlaced` never decreases, and lowering the goal may place several bricks at once on save.
 
 **3.3 Milestones**: Foundation 8 · Walls 20 · Towers 34 · Keep 50. Record `reachedAt` once per fort, fire the world toast and the milestone analytics event, and award badges lazily (§4.2). At completion: flag, "Fort complete!" in the drawer, and the toast. (Decided: the Fort Sign image does **not** change.) Fishing still counts on the leaderboards.
 
@@ -238,7 +237,7 @@ Example World data object:
 
 **6.1** The gear opens Admin Settings: Fort goal (1,000 / 10,000 / **30,000** / 50,000 / 100,000), Tournament lakes per day (5 / **10** / 20 / No limit), [Start a new fort] (red) with the confirmation copy from §7 and [Keep Fort] / [Start New Fort].
 
-**6.2** Start new fort: `fortNumber++`, worldSnow/bricks/milestones/builderCount reset, all 50 pieces + flag back to transparent (reconcile pass). Badges and leaderboards are untouched. Fire `fortRestarts-castle`.
+**6.2** Start new fort: `fortNumber++`, worldSnow/bricks/milestones/builderCount reset, all 50 pieces back to transparent (reconcile pass). Badges and leaderboards are untouched. Fire `fortRestarts-castle`.
 
 **6.3** All admin routes check `visitor.isAdmin` server-side.
 
@@ -312,7 +311,7 @@ POST /api/lake/drill { kind, hole }                    → DrillResponse { lake,
 GET  /api/fort?open=true                               → FortView { fort, variety, youAdded, builderCount, sections[] }
 GET  /api/trophy?open=true&forceRefreshInventory=      → TrophyState { isAdmin, lakesPerDay, leaderboards{tournament{today,yesterday}, dailyLake{today,yesterday}, fortBuilders}, yesterdayDayKey, badges[] }
 POST /api/leaderboard-view { board }                   → leaderboardViews-{board} analytics
-GET  /api/admin/settings                               → AdminState { settings, missingSlots, flagMissing, fortNumber } (runs a reconcile pass)
+GET  /api/admin/settings                               → AdminState { settings, missingSlots, fortNumber } (runs a reconcile pass)
 POST /api/admin/settings { fortGoal?, tournamentLakesPerDay? }  → AdminState + fort
 POST /api/admin/start-new-fort                         → AdminState + fort
 POST /api/admin/reset-leaderboard                      → clears Fort Builders, bumps fortBuildersEpoch
@@ -377,7 +376,7 @@ POST /api/admin/reset-leaderboard                      → clears Fort Builders,
 
 ### Verify on a dev world (assumptions the tests can't prove)
 
-1. **`&` in unique names.** The SDK puts the unique name in the URL path unencoded (`/assets-with-unique-name/Fishers&Forts_fortBlock_`). `&` is legal in a path, so lookups should work; confirm the 50 blocks and the flag are found.
+1. **`&` in unique names.** The SDK puts the unique name in the URL path unencoded (`/assets-with-unique-name/Fishers&Forts_fortBlock_`). `&` is legal in a path, so lookups should work; confirm the 50 blocks are found.
 2. **Held locks as compare-and-swap** (§4.4). Fort writes use `releaseLock: false` with a lock id derived from the fort state. Confirm a held lock rejects a second writer and that held locks expire on their own.
 3. **Path links.** Confirm the `/fort` and `/trophy` iframe links load with the session params Topia appends.
-4. **Piece art layer.** The app writes the top layer (`updateWebImageLayers("", url)`). Place the blocks and flag as web-image assets so the swap renders.
+4. **Piece art layer.** The app writes the top layer (`updateWebImageLayers("", url)`). Place the blocks as web-image assets so the swap renders.

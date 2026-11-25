@@ -357,19 +357,25 @@
   background: var(--ff-sun);
 }
 
-.ff-hole--fish.is-new svg {
+.ff-hole--fish.is-new .ff-hole__fish {
   animation: ff-fish-pop 0.55s var(--ff-ease-bounce) both;
 }
 
 .ff-hole--missed {
   background: var(--ff-card);
   box-shadow: inset 0 0 0 2.5px var(--ff-fish);
-  color: var(--ff-fish);
 }
 
-.ff-hole svg {
-  width: 56%;
+.ff-hole__fish {
+  width: 78%;
   height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ff-hole--missed .ff-hole__fish {
+  opacity: 0.45;
+  filter: grayscale(0.6);
 }
 
 .ff-reminder {

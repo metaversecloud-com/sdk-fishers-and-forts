@@ -222,7 +222,6 @@ export const handleDrill = async (req: Request, res: Response) => {
         );
         await reconcileFortPieces({
           world: worldInstance,
-          host: req.hostname,
           theme: worldAfter.fort.theme,
           bricksPlaced: worldAfter.fort.bricksPlaced,
           sparkleSlots,

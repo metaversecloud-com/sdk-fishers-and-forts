@@ -1,5 +1,5 @@
 /*
- * Fishers & Forts — design tokens (spec §11: Trivia visual family, Frost palette).
+ * Fishers & Forts — design tokens (Trivia visual family, Frost palette).
  *
  * Unlayered (imported from index.css outside any @layer), so these beat the SDK and Tailwind layers.
  * Components reference semantic tokens; a future re-theme (e.g. tropical) only retargets this file.
@@ -36,7 +36,7 @@
   --ff-tile-earned-tournament: var(--ff-accent);
   --ff-tile-earned-fort: var(--ff-ice);
 
-  /* ─── Type (Trivia's fonts; body is Outfit per spec "use Trivia's where they differ") ─── */
+  /* ─── Type (Trivia's fonts; body is Outfit) ─── */
   --ff-font-display: "Bricolage Grotesque", "Outfit", system-ui, sans-serif;
   --ff-font-mono: "Space Mono", ui-monospace, monospace;
   --ff-font-body: "Outfit", system-ui, sans-serif;
@@ -99,7 +99,7 @@ body.rtsdk {
   border: 0;
 }
 
-/* All motion is skipped when the device asks for reduced motion (spec §11). */
+/* All motion is skipped when the device asks for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

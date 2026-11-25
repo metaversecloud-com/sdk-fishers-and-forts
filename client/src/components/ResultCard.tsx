@@ -1,6 +1,6 @@
 import type { LakeKind, LakeResult } from "@shared/types";
 
-/** Result card under a finished lake (spec §5.5). */
+/** Result card under a finished lake. */
 export const ResultCard = ({
   kind,
   result,

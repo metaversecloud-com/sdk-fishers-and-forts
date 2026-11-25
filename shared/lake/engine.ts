@@ -1,5 +1,5 @@
 /**
- * The puzzle engine (spec §4). Pure TypeScript, no SDK dependencies.
+ * The puzzle engine. Pure TypeScript, no SDK dependencies.
  *
  * - generateLake: steps 1–4 (place fish, pick starter clues, test with the solver, pick the special fish).
  * - solveLake: the deterministic "careful player" (solver steps A–F).
@@ -46,12 +46,12 @@ export const generateLake = (seed: string, withSpecial: boolean): Lake => {
     if (withSpecial) lake.special = built.fish[Math.floor(rng() * built.fish.length)];
     return lake;
   }
-  // Practically unreachable (the spec's 2,000-lake test never rejected a lake at ≥5).
+  // Practically unreachable (a 2,000-lake test never rejected a lake at ≥5).
   throw new Error(`Could not generate a lake for seed ${seed}`);
 };
 
 /**
- * The Helper (spec §4.3): every number whose caught neighbors equal the number marks its undrilled
+ * The Helper: every number whose caught neighbors equal the number marks its undrilled
  * neighbors empty. Never combines numbers, never reveals fish. One pass is enough.
  * Returns the newly marked holes in reading order.
  */
@@ -106,7 +106,7 @@ export const applyDrill = (
 };
 
 /**
- * The solver (spec §4, steps A–F). Sees only what a player sees, with 18 drills and the Helper on.
+ * The solver. Sees only what a player sees, with 18 drills and the Helper on.
  * Returns how many fish it caught (guesses included).
  */
 export const solveLake = (lake: Lake): number => {

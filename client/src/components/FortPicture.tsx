@@ -1,4 +1,4 @@
-import { CASTLE_FLAG, CASTLE_LAYOUT, SLOT_COUNT } from "@shared/fort/fort";
+import { CASTLE_LAYOUT, SLOT_COUNT } from "@shared/fort/fort";
 
 const BW = 52; // brick width
 const BH = 27; // brick height
@@ -19,11 +19,12 @@ const towerTopPath = (x: number, y: number) => {
 
 /**
  * The fort as it stands now, drawn from the Castle layout. Only placed pieces are drawn — the finished
- * shape is a surprise (spec §6.4).
+ * shape is a surprise.
  */
 export const FortPicture = ({ bricksPlaced }: { bricksPlaced: number }) => {
   const placed = CASTLE_LAYOUT.filter((p) => p.slot <= bricksPlaced);
-  const flag = bricksPlaced >= SLOT_COUNT ? pos(CASTLE_FLAG.col, CASTLE_FLAG.row) : null;
+  const flagBlock = placed.find((p) => p.type === "flag");
+  const flag = flagBlock ? pos(flagBlock.col, flagBlock.row + 1) : null;
   return (
     <svg
       className="ff-fortpic"

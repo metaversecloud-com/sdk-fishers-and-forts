@@ -1,10 +1,12 @@
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import type { HoleView } from "@shared/types";
 
-// components
-import { FishIcon } from "@components/Icons";
-
 const SIZE = 7;
+
+const FISH_ICONS = {
+  regular: "/assets/fishicon-regular.png",
+  special: "/assets/fishicon-special.png",
+};
 
 const describe = (h: HoleView, i: number) => {
   const where = `Row ${Math.floor(i / SIZE) + 1}, column ${(i % SIZE) + 1}`;
@@ -34,7 +36,7 @@ const holeClass = (h: HoleView) => {
 };
 
 /**
- * The lake: one connected sheet of square holes (spec §5.2, §11). Every hole is a real button for
+ * The lake: one connected sheet of square holes. Every hole is a real button for
  * keyboard + screen reader play; arrow keys move between holes (roving tabindex).
  */
 export const Lake = ({
@@ -102,7 +104,14 @@ export const Lake = ({
             onClick={() => drillable && onDrill(i)}
           >
             {h.s === "num" && <span aria-hidden="true">{h.n}</span>}
-            {(h.s === "fish" || h.s === "missed") && <FishIcon />}
+            {(h.s === "fish" || h.s === "missed") && (
+              <img
+                className="ff-hole__fish"
+                src={h.s === "fish" && h.special ? FISH_ICONS.special : FISH_ICONS.regular}
+                alt=""
+                draggable={false}
+              />
+            )}
           </button>
         );
       })}

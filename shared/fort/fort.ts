@@ -1,10 +1,12 @@
 /**
- * Snow Fort rules (spec §6) and the Castle layout (mockup ww-icefish-ui-fort-castle-stages).
+ * Snow Fort rules and the Castle layout (mockup ww-icefish-ui-fort-castle-stages).
  */
 import type { FortState, FortSummary, SectionKey } from "../types/index.js";
 
 export const SLOT_COUNT = 50;
 export const TOWER_TOP_SLOTS = [33, 34];
+/** The last keep block carries the flag. */
+export const FLAG_SLOT = SLOT_COUNT;
 
 export const SECTIONS: { key: SectionKey; name: string; lastSlot: number }[] = [
   { key: "foundation", name: "Foundation", lastSlot: 8 },
@@ -13,12 +15,13 @@ export const SECTIONS: { key: SectionKey; name: string; lastSlot: number }[] = [
   { key: "keep", name: "Keep", lastSlot: 50 },
 ];
 
-export type PieceType = "brick" | "towerTop";
-export const pieceTypeForSlot = (slot: number): PieceType => (TOWER_TOP_SLOTS.includes(slot) ? "towerTop" : "brick");
+export type PieceType = "brick" | "towerTop" | "flag";
+export const pieceTypeForSlot = (slot: number): PieceType =>
+  slot === FLAG_SLOT ? "flag" : TOWER_TOP_SLOTS.includes(slot) ? "towerTop" : "brick";
 
 /**
  * Snow needed for brick `n` to appear. Bricks after `spacing.fromBricks` are spread evenly between
- * `spacing.fromSnow` and the goal, so changing the goal mid-fort re-spaces the remaining bricks (spec §7).
+ * `spacing.fromSnow` and the goal, so changing the goal mid-fort re-spaces the remaining bricks.
  */
 export const brickThreshold = (n: number, goal: number, spacing: FortState["spacing"]) => {
   const { fromSnow, fromBricks } = spacing;
@@ -72,9 +75,8 @@ for (let c = 0; c < 8; c++) add(9 + c, c, 1);
 [0, 1, 6, 7].forEach((c, i) => add(29 + i, c, 4));
 add(33, 0, 5);
 add(34, 6, 5);
-// Keep 35–49 (three wide, offset half a brick, rows 3–7), 50 on top
+// Keep 35–49 (three wide, offset half a brick, rows 3–7), 50 (the flag block) on top
 for (let r = 0; r < 5; r++) [2.5, 3.5, 4.5].forEach((c, i) => add(35 + r * 3 + i, c, 3 + r));
 add(50, 3.5, 8);
 
 export const CASTLE_LAYOUT: LayoutPiece[] = castle.sort((a, b) => a.slot - b.slot);
-export const CASTLE_FLAG = { col: 3.5, row: 9 };

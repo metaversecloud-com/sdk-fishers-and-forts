@@ -12,7 +12,7 @@ const parse = (board: Record<string, string> | undefined): Entry[] =>
     return { profileId, name, values: rest.map(Number) };
   });
 
-/** Sorting rules (spec §8). */
+/** Sorting rules. */
 const SORTS = {
   // fish desc, reachedAt asc
   tournament: (a: Entry, b: Entry) => b.values[0] - a.values[0] || a.values[1] - b.values[1],

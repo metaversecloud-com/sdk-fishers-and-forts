@@ -11,7 +11,7 @@ import { ErrorType } from "@/context/types";
 // utils
 import { backendAPI, firstOpen, fmt, setErrorMessage, setGameState } from "@/utils";
 
-/** The Snow Fort drawer (spec §6.4), route `/fort`. */
+/** The Snow Fort drawer, route `/fort`. */
 export const FortView = () => {
   const navigate = useNavigate();
   const { search } = useLocation();
