@@ -16,7 +16,7 @@ const describe = (h: HoleView, i: number) => {
     case "marked":
       return `${where}: marked empty`;
     case "num":
-      return `${where}: ${h.n} fish nearby${h.clue ? ", starter clue" : ""}`;
+      return `${where}: ${h.n} fish nearby${h.clue ? ", starter clue" : ""}${h.revealed ? ", not drilled" : ""}`;
     case "fish":
       return `${where}: ${h.special ? "special fish" : "fish"} caught`;
     case "missed":
@@ -27,7 +27,7 @@ const describe = (h: HoleView, i: number) => {
 const holeClass = (h: HoleView) => {
   switch (h.s) {
     case "num":
-      return `ff-hole--num${h.clue ? " ff-hole--clue" : ""}${h.n === 0 ? " ff-hole--zero" : ""}`;
+      return `ff-hole--num${h.clue ? " ff-hole--clue" : ""}${h.revealed ? " ff-hole--revealed" : ""}${h.n === 0 ? " ff-hole--zero" : ""}`;
     case "fish":
       return `ff-hole--fish${h.special ? " ff-hole--special" : ""}`;
     default:

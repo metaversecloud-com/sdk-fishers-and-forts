@@ -15,7 +15,7 @@ export const newProgress = (kind: LakeKind, seed: string, dayKey: string, now: n
   startedAt: now,
 });
 
-/** Build the client-safe view. Fish positions are only included once the lake is finished. */
+/** Build the client-safe view. Fish positions and undrilled numbers are only included once the lake is finished. */
 export const toLakeView = (lake: Lake, progress: LakeProgress, label: string): LakeView => {
   const fishSet = new Set(lake.fish);
   const drilled = new Set(progress.drilled);
@@ -27,7 +27,8 @@ export const toLakeView = (lake: Lake, progress: LakeProgress, label: string): L
     if (caught.has(i)) return lake.special === i ? { s: "fish", special: true } : { s: "fish" };
     if (clues.has(i)) return { s: "num", n: countAround(i, fishSet), clue: true };
     if (drilled.has(i)) return { s: "num", n: countAround(i, fishSet) };
-    if (progress.finished && fishSet.has(i)) return { s: "missed" };
+    // Once the lake ends, every hole left is uncovered: missed fish, and the number under the rest.
+    if (progress.finished) return fishSet.has(i) ? { s: "missed" } : { s: "num", n: countAround(i, fishSet), revealed: true };
     if (marked.has(i)) return { s: "marked" };
     return { s: "ice" };
   });

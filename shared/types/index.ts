@@ -16,7 +16,7 @@ export interface Lake {
 export type HoleView =
   | { s: "ice" } // undrilled
   | { s: "marked" } // Helper-marked empty
-  | { s: "num"; n: number; clue?: true } // drilled number (clue = starter clue ring)
+  | { s: "num"; n: number; clue?: true; revealed?: true } // drilled number (clue = starter clue ring, revealed = shown once the lake ends)
   | { s: "fish"; special?: true } // caught
   | { s: "missed" }; // only after the lake ends
 

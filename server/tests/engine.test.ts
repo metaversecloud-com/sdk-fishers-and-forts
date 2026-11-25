@@ -69,7 +69,12 @@ describe("Helper and drilling", () => {
     expect(before.holes.filter((h) => h.s === "fish" || h.s === "missed")).toHaveLength(0);
     for (const f of lake.fish) applyDrill(lake, p, f);
     expect(p.finished).toBe(true);
-    expect(toLakeView(lake, p, "L").fishCaught).toBe(7);
+    const after = toLakeView(lake, p, "L");
+    expect(after.fishCaught).toBe(7);
     expect(before.holes).toHaveLength(HOLE_COUNT);
+    // Drills were left over, but nothing on the lake is still drillable or hidden.
+    expect(p.drillsLeft).toBeGreaterThan(0);
+    expect(after.holes.filter((h) => h.s === "ice" || h.s === "marked")).toHaveLength(0);
+    expect(after.holes.filter((h) => h.s === "num" && h.revealed)).toHaveLength(HOLE_COUNT - 7 - lake.clues.length);
   });
 });

@@ -331,6 +331,18 @@
   color: var(--ff-muted);
 }
 
+/* Undrilled holes uncovered when the lake ends: lighter than drilled numbers, swept in across the lake. */
+.ff-hole--revealed {
+  color: var(--ff-muted);
+  font-weight: 600;
+}
+
+.ff-hole--revealed.is-new,
+.ff-hole--missed.is-new {
+  animation: ff-flip 0.3s ease-out both;
+  animation-delay: calc(var(--i, 0) * 10ms);
+}
+
 .ff-hole--marked {
   background: var(--ff-marked);
 }
