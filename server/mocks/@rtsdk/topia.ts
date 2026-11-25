@@ -105,8 +105,10 @@ class FakeWorld {
   constructor(public urlSlug: string) {}
   async fetchDroppedAssetsBySceneDropId({ sceneDropId, uniqueName }: { sceneDropId: string; uniqueName?: string }) {
     if (!sceneDropId) throw new Error("A valid sceneDropId is required.");
+    // Like the real SDK: the filter goes into the query string unencoded, so an `&` cuts the name short.
+    const sentName = uniqueName?.split("&")[0];
     return (__store.assets[this.urlSlug] || []).filter(
-      (a) => a.sceneDropId === sceneDropId && (!uniqueName || a.uniqueName === uniqueName),
+      (a) => a.sceneDropId === sceneDropId && (!sentName || a.uniqueName === sentName),
     );
   }
   async triggerParticle(args: any) {

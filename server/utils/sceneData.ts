@@ -63,9 +63,13 @@ export const defaultSceneData = (now: number): SceneDataObject => ({
 type WorldInstance = Awaited<ReturnType<typeof World.create>>;
 type KeyAsset = Awaited<ReturnType<WorldInstance["fetchDroppedAssetsBySceneDropId"]>>[number];
 
-/** This scene's key asset, which holds the scene data. */
+/**
+ * This scene's key asset, which holds the scene data. Matched by name here rather than with the
+ * `uniqueName` filter: the SDK puts that filter in the query string unencoded, so the `&` in
+ * `Fishers&Forts_keyAsset` splits it and the API matches nothing.
+ */
 const getKeyAsset = async (world: WorldInstance, sceneDropId: string): Promise<KeyAsset> => {
-  const assets = await world.fetchDroppedAssetsBySceneDropId({ sceneDropId, uniqueName: UNIQUE_NAMES.keyAsset });
+  const assets = await world.fetchDroppedAssetsBySceneDropId({ sceneDropId });
   const keyAsset = (assets || []).find((a: any) => a?.uniqueName === UNIQUE_NAMES.keyAsset);
   if (!keyAsset) {
     throw Object.assign(new Error(`This scene has no ${UNIQUE_NAMES.keyAsset} asset.`), { status: 404 });

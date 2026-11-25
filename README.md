@@ -1,8 +1,6 @@
 # Fishers & Forts
 
-An Ice Fishing logic puzzle in a drawer, plus a Snow Fort in the world that everyone builds together. Every fish caught adds snow; as World Snow grows, bricks appear on the fort one at a time. Launching with Winter Wonderland (Dec 1, 2026).
-
-See [`plan.md`](plan.md) for the design decisions, data models and build status.
+An Ice Fishing logic puzzle in a drawer, plus a Snow Fort in the world that everyone builds together. Every fish caught adds snow; as World Snow grows, bricks appear on the fort one at a time.
 
 ## What players see
 
@@ -19,12 +17,12 @@ The gear in the Fishing drawer opens **Admin Settings**: fort goal (1,000 / 10,0
 
 Place one scene per instance. A world can hold several (e.g. one per theme), and each runs independently:
 
-| Asset | Unique name | Click behavior |
-|---|---|---|
-| Fishing Shack (key asset) | `Fishers&Forts_keyAsset` | Iframe drawer → `{appUrl}/` |
-| Fort Sign | `Fishers&Forts_fort` | Iframe drawer → `{appUrl}/fort` |
-| Trophy | none needed | Iframe drawer → `{appUrl}/trophy` |
-| Fort blocks 1–50 | `Fishers&Forts_fortBlock_1` … `Fishers&Forts_fortBlock_50` | Not clickable. Web-image asset, transparent to start. Slots 33–34 are the tower tops; slot 50 is the flag block |
+| Asset                     | Unique name                                                | Click behavior                                                                                                  |
+| ------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Fishing Shack (key asset) | `Fishers&Forts_keyAsset`                                   | Iframe drawer → `{appUrl}/`                                                                                     |
+| Fort Sign                 | `Fishers&Forts_fort`                                       | Iframe drawer → `{appUrl}/fort`                                                                                 |
+| Trophy                    | none needed                                                | Iframe drawer → `{appUrl}/trophy`                                                                               |
+| Fort blocks 1–50          | `Fishers&Forts_fortBlock_1` … `Fishers&Forts_fortBlock_50` | Not clickable. Web-image asset, transparent to start. Slots 33–34 are the tower tops; slot 50 is the flag block |
 
 Slot order (Castle): foundation 1–8 (bottom row, left → right), walls 9–20, towers 21–34 (33/34 = tower tops), keep 35–50 (50 = the flag block). A missing or deleted block never breaks the game; it's listed in Admin Settings and restored automatically once an asset with that unique name is back.
 
@@ -32,16 +30,16 @@ Piece art is served from the `sdk-fishers-and-forts` S3 bucket (same for every e
 
 ## API
 
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/game-state?kind=daily\|tournament&open=` | Fishing drawer |
-| POST | `/api/lake/drill` `{ kind, hole }` | Drill a hole (server-authoritative) |
-| GET | `/api/fort?open=` | Snow Fort drawer |
-| GET | `/api/trophy?open=&forceRefreshInventory=` | Leaderboards + badges |
-| POST | `/api/leaderboard-view` `{ board }` | Leaderboard view analytics |
-| GET/POST | `/api/admin/settings` | Admin settings (+ missing block report) |
-| POST | `/api/admin/start-new-fort` | Reset the fort |
-| POST | `/api/admin/reset-leaderboard` | Reset Fort Builders |
+| Method   | Route                                          | Purpose                                 |
+| -------- | ---------------------------------------------- | --------------------------------------- |
+| GET      | `/api/game-state?kind=daily\|tournament&open=` | Fishing drawer                          |
+| POST     | `/api/lake/drill` `{ kind, hole }`             | Drill a hole (server-authoritative)     |
+| GET      | `/api/fort?open=`                              | Snow Fort drawer                        |
+| GET      | `/api/trophy?open=&forceRefreshInventory=`     | Leaderboards + badges                   |
+| POST     | `/api/leaderboard-view` `{ board }`            | Leaderboard view analytics              |
+| GET/POST | `/api/admin/settings`                          | Admin settings (+ missing block report) |
+| POST     | `/api/admin/start-new-fort`                    | Reset the fort                          |
+| POST     | `/api/admin/reset-leaderboard`                 | Reset Fort Builders                     |
 
 ## Data objects
 
