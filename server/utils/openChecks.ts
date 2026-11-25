@@ -3,7 +3,7 @@
  * badge whose grant failed earlier), the "you finished #4 yesterday" toast, and the open analytics —
  * all recorded in ONE visitor write.
  */
-import type { VisitorLifetime, VisitorWorldData, WorldDataObject } from "@shared/types/index.js";
+import type { VisitorLifetime, VisitorSceneData, SceneDataObject } from "@shared/types/index.js";
 import { Credentials } from "../types/index.js";
 import { Analytic, analytic } from "./analytics.js";
 import { awardBadges, pendingBadges } from "./badges.js";
@@ -13,12 +13,12 @@ import type { VisitorInstance } from "./visitorData.js";
 
 /** Best tournament finish among closed days the player hasn't been checked for. */
 const bestUncheckedTournamentRank = (
-  world: WorldDataObject,
-  worldEntry: VisitorWorldData,
+  world: SceneDataObject,
+  sceneEntry: VisitorSceneData,
   profileId: string,
   today: string,
 ) => {
-  const since = worldEntry.lastSeenDay || "";
+  const since = sceneEntry.lastSeenDay || "";
   let best: number | null = null;
   for (const [dayKey, top] of Object.entries(world.tournamentHistory || {})) {
     if (dayKey < since || dayKey >= today) continue;
@@ -32,7 +32,7 @@ export const runOpenChecks = async ({
   credentials,
   visitor,
   lifetime,
-  worldEntry,
+  sceneEntry,
   badgeCache,
   world,
   openAnalytics,
@@ -40,18 +40,18 @@ export const runOpenChecks = async ({
   credentials: Credentials;
   visitor: VisitorInstance;
   lifetime: VisitorLifetime;
-  worldEntry: VisitorWorldData;
+  sceneEntry: VisitorSceneData;
   badgeCache: Record<string, number>;
-  world: WorldDataObject;
+  world: SceneDataObject;
   openAnalytics: string[];
 }) => {
   const { profileId, urlSlug } = credentials;
   const now = clock.now();
   const today = etDayKey(new Date(now));
-  const firstOpenToday = worldEntry.lastSeenDay !== today;
+  const firstOpenToday = sceneEntry.lastSeenDay !== today;
 
-  const tournamentBestRank = firstOpenToday ? bestUncheckedTournamentRank(world, worldEntry, profileId, today) : null;
-  const names = pendingBadges({ lifetime, worldEntry, world, profileId, tournamentBestRank }, badgeCache);
+  const tournamentBestRank = firstOpenToday ? bestUncheckedTournamentRank(world, sceneEntry, profileId, today) : null;
+  const names = pendingBadges({ lifetime, sceneEntry, world, profileId, tournamentBestRank }, badgeCache);
   const { record, analytics: badgeAnalytics } = await awardBadges({ credentials, visitor, names });
 
   // Yesterday's tournament finish toast (player only, first open of the day).
@@ -59,8 +59,8 @@ export const runOpenChecks = async ({
   if (
     firstOpenToday &&
     yesterday &&
-    worldEntry.tournament.dayKey === yesterday.dayKey &&
-    worldEntry.tournament.lakesFinished > 0
+    sceneEntry.tournament.dayKey === yesterday.dayKey &&
+    sceneEntry.tournament.lakesFinished > 0
   ) {
     const rank = rankOf("tournament", yesterday.tournament, profileId);
     if (rank) {

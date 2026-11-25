@@ -22,8 +22,11 @@ const makeApp = () => {
 };
 
 const SLUG = "winter-wonderland";
-const creds = (profileId = "p1", visitorId = 1) => ({
+const SCENE = "scene-1";
+const KEY = `${SLUG}-${SCENE}`; // this scene's key in the player's record
+const creds = (profileId = "p1", visitorId = 1, sceneDropId = SCENE) => ({
   assetId: "asset-key",
+  sceneDropId,
   displayName: `Player ${profileId}`,
   interactiveNonce: "nonce",
   interactivePublicKey: process.env.INTERACTIVE_KEY,
@@ -36,6 +39,12 @@ const creds = (profileId = "p1", visitorId = 1) => ({
 const DEC1 = Date.parse("2026-12-01T17:00:00Z");
 const DAY = 24 * 60 * 60 * 1000;
 const today = () => etDayKey(new Date(clock.now()));
+
+/** The scene data object: the data object of that scene's key asset. */
+const sceneData = (sceneDropId = SCENE) => {
+  const keyAsset = store.assets[SLUG].find((a: any) => a.uniqueName === UNIQUE_NAMES.keyAsset && a.sceneDropId === sceneDropId);
+  return store.assetData[keyAsset.id];
+};
 
 const app = makeApp();
 const get = (path: string, query = {}, who = creds()) => request(app).get(`/api${path}`).query({ ...who, ...query });
@@ -63,6 +72,7 @@ const playLake = async (kind: "daily" | "tournament", seed: string, fishToCatch 
 beforeEach(() => {
   fake.resetStore();
   clock.now = () => DEC1;
+  fake.addAsset(SLUG, UNIQUE_NAMES.keyAsset, SCENE);
   // Catalog fixture, like the inventory ZIP: listed in reverse to prove the app sorts by metadata.sortOrder.
   store.inventoryItems = Object.keys(BADGE_RULES)
     .map((name, i) => ({
@@ -97,8 +107,8 @@ describe("Fishing drawer", () => {
     expect(lake.holes.some((h: any) => h.s === "fish" || h.s === "missed")).toBe(false);
     expect(tournament.unlocked).toBe(false);
     expect(fort).toMatchObject({ worldSnow: 0, goal: 30000, bricksPlaced: 0 });
-    expect(store.worlds[SLUG].fort.fortNumber).toBe(1);
-    expect(store.visitors.p1[SLUG]).toBeDefined();
+    expect(sceneData().fort.fortNumber).toBe(1);
+    expect(store.visitors.p1[KEY]).toBeDefined();
     expect(store.analytics.map((a: any) => a.analyticName)).toEqual(expect.arrayContaining(["appOpens", "fishingDrawerOpens"]));
   });
 
@@ -125,7 +135,7 @@ describe("Fishing drawer", () => {
     expect(data.dailyRank).toBe(1);
     expect(data.tournament.unlocked).toBe(true);
 
-    const world = store.worlds[SLUG];
+    const world = sceneData();
     expect(world.fort.worldSnow).toBe(14);
     expect(world.fort.builderCount).toBe(1);
     expect(world.leaderboards.dailyLake.p1).toMatch(/^Player p1\|7\|\d+\|\d+$/);
@@ -145,18 +155,18 @@ describe("Fishing drawer", () => {
 
   test("tournament lakes count toward the day's score and respect the daily cap", async () => {
     await playLake("daily", dailySeed(today()));
-    store.worlds[SLUG].settings.tournamentLakesPerDay = 5;
+    sceneData().settings.tournamentLakesPerDay = 5;
 
     const first = await get("/game-state", { kind: "tournament" });
     expect(first.body.data.lake.label).toBe("TOURNAMENT LAKE 1/5 • 7 FISH");
 
-    const data = await playLake("tournament", tournamentSeed("p1", SLUG, 0), 4);
+    const data = await playLake("tournament", tournamentSeed("p1", KEY, 0), 4);
     expect(data.lake.result.specialCaught).toBeNull();
     expect(data.tournament).toMatchObject({ fish: 4, lakesLeft: 4, rank: 1 });
-    expect(store.worlds[SLUG].leaderboards.tournament.p1).toMatch(/^Player p1\|4\|/);
+    expect(sceneData().leaderboards.tournament.p1).toMatch(/^Player p1\|4\|/);
 
     // Use up the remaining lakes by editing the counter, then the next drill is refused.
-    store.visitors.p1[SLUG].tournament.lakesFinished = 5;
+    store.visitors.p1[KEY].tournament.lakesFinished = 5;
     const out = await get("/game-state", { kind: "tournament" });
     expect(out.body.data.tournament.outOfLakes).toBe(true);
     expect((await post("/lake/drill", { kind: "tournament", hole: 0 })).status).toBe(400);
@@ -173,15 +183,15 @@ describe("Fishing drawer", () => {
 
 describe("Snow Fort", () => {
   const setupPieces = (skip: number[] = []) => {
-    for (let slot = 1; slot <= 50; slot++) if (!skip.includes(slot)) fake.addAsset(SLUG, `${UNIQUE_NAMES.fortBlockPrefix}${slot}`);
+    for (let slot = 1; slot <= 50; slot++) if (!skip.includes(slot)) fake.addAsset(SLUG, `${UNIQUE_NAMES.fortBlockPrefix}${slot}`, SCENE);
   };
 
   test("crossing a brick threshold swaps the brick image, sparkles it and toasts the player", async () => {
     setupPieces([3]);
     await get("/game-state"); // init world
-    store.worlds[SLUG].settings.fortGoal = 1000; // 20 snow per brick
-    store.worlds[SLUG].fort.worldSnow = 30;
-    store.worlds[SLUG].fort.bricksPlaced = 1;
+    sceneData().settings.fortGoal = 1000; // 20 snow per brick
+    sceneData().fort.worldSnow = 30;
+    sceneData().fort.bricksPlaced = 1;
 
     const data = await playLake("daily", dailySeed(today())); // +14 → 44 snow = 2 bricks
     expect(data.addedBrick).toBe(true);
@@ -200,12 +210,12 @@ describe("Snow Fort", () => {
   test("finishing a section records the milestone once and fires the world toast", async () => {
     setupPieces();
     await get("/game-state");
-    store.worlds[SLUG].settings.fortGoal = 1000;
-    store.worlds[SLUG].fort.worldSnow = 150; // 7 bricks
-    store.worlds[SLUG].fort.bricksPlaced = 7;
+    sceneData().settings.fortGoal = 1000;
+    sceneData().fort.worldSnow = 150; // 7 bricks
+    sceneData().fort.bricksPlaced = 7;
 
     await playLake("daily", dailySeed(today())); // 164 → 8 bricks: foundation
-    expect(store.worlds[SLUG].fort.milestones.foundation).toBeDefined();
+    expect(sceneData().fort.milestones.foundation).toBeDefined();
     expect(store.worldToasts.map((t: any) => t.text)).toContain("The Snow Fort's foundation is finished! Come see it.");
   });
 
@@ -220,28 +230,28 @@ describe("Snow Fort", () => {
   test("concurrent finishes don't lose snow (compare-and-swap retry)", async () => {
     await get("/game-state");
     let injected = false;
-    store.beforeWorldUpdate = () => {
+    store.beforeSceneUpdate = () => {
       // Another lake finish lands between this request's read and write.
       if (injected) return;
       injected = true;
-      const w = store.worlds[SLUG];
+      const w = sceneData();
       w.fort.worldSnow += 5;
-      store.locks.add(`ff-fort-${SLUG}-1-0-0-30000-10`);
+      store.locks.add(`ff-fort-${SCENE}-1-0-0-30000-10`);
     };
     await playLake("daily", dailySeed(today()));
-    expect(store.worlds[SLUG].fort.worldSnow).toBe(19);
+    expect(sceneData().fort.worldSnow).toBe(19);
   });
 });
 
 describe("Daily rollover", () => {
   test("first request after midnight ET freezes yesterday, records the top 10, and toasts the player", async () => {
     await playLake("daily", dailySeed(today()));
-    await playLake("tournament", tournamentSeed("p1", SLUG, 0), 3);
+    await playLake("tournament", tournamentSeed("p1", KEY, 0), 3);
 
     clock.now = () => DEC1 + DAY;
     const res = await get("/game-state", { open: "true" });
     expect(res.status).toBe(200);
-    const w = store.worlds[SLUG];
+    const w = sceneData();
     expect(w.dayKey).toBe("2026-12-02");
     expect(w.leaderboards.tournament).toEqual({});
     expect(w.leaderboards.yesterday.dayKey).toBe("2026-12-01");
@@ -276,6 +286,65 @@ describe("Trophy drawer", () => {
   });
 });
 
+describe("Two scenes in one world", () => {
+  const SCENE_B = "scene-2";
+  const KEY_B = `${SLUG}-${SCENE_B}`;
+
+  test("each scene keeps its own fort, leaderboards, settings, player progress and blocks", async () => {
+    fake.addAsset(SLUG, UNIQUE_NAMES.keyAsset, SCENE_B);
+    for (let slot = 1; slot <= 50; slot++) {
+      fake.addAsset(SLUG, `${UNIQUE_NAMES.fortBlockPrefix}${slot}`, SCENE);
+      fake.addAsset(SLUG, `${UNIQUE_NAMES.fortBlockPrefix}${slot}`, SCENE_B);
+    }
+    await get("/game-state"); // init scene A
+    sceneData().settings.fortGoal = 1000; // 20 snow per brick in scene A only
+
+    await playLake("daily", dailySeed(today())); // p1 in scene A: +14 snow
+    await playLake("daily", dailySeed(today()), 7, creds("p2", 2, SCENE_B)); // p2 in scene B: +14 snow
+
+    // Each fort only counts its own scene's snow and builders.
+    expect(sceneData().fort.worldSnow).toBe(14);
+    expect(sceneData(SCENE_B).fort.worldSnow).toBe(14);
+    expect(Object.keys(sceneData().leaderboards.dailyLake)).toEqual(["p1"]);
+    expect(Object.keys(sceneData(SCENE_B).leaderboards.dailyLake)).toEqual(["p2"]);
+    expect(sceneData(SCENE_B).settings.fortGoal).toBe(30000);
+
+    // Player progress is per scene: p1 hasn't played scene B's Daily Lake yet.
+    expect(store.visitors.p1[KEY].daily.finished).toBe(true);
+    expect(store.visitors.p1[KEY_B]).toBeUndefined();
+    const inB = await get("/game-state", {}, creds("p1", 1, SCENE_B));
+    expect(inB.body.data.lake.finished).toBe(false);
+    expect(store.visitors.p1[KEY_B]).toBeDefined();
+
+    // Tournament lakes differ between scenes, so a solved lake can't be replayed on the other board.
+    expect(tournamentSeed("p1", KEY, 0)).not.toBe(tournamentSeed("p1", KEY_B, 0));
+
+    // Admin changes stay in their scene, and only that scene's blocks change.
+    store.admins.add("p1");
+    await post("/admin/settings", { fortGoal: 1000 }, creds("p1", 1, SCENE_B));
+    const blocks = (scene: string) =>
+      store.assets[SLUG].filter((a: any) => a.sceneDropId === scene && a.uniqueName.startsWith(UNIQUE_NAMES.fortBlockPrefix));
+    expect(sceneData(SCENE_B).settings.fortGoal).toBe(1000);
+    expect(sceneData(SCENE_B).fort.bricksPlaced).toBe(0); // 14 snow after the re-space is still short of a brick
+    sceneData(SCENE_B).fort.bricksPlaced = 3;
+    await get("/admin/settings", {}, creds("p1", 1, SCENE_B)); // reconcile pass for scene B
+    expect(blocks(SCENE_B).filter((a: any) => /brick\.png$/.test(a.topLayerURL))).toHaveLength(3);
+    expect(blocks(SCENE).every((a: any) => a.updateWebImageLayers.mock.calls.length === 0)).toBe(true);
+
+    await post("/admin/start-new-fort", {}, creds("p1", 1, SCENE_B));
+    expect(sceneData(SCENE_B).fort.fortNumber).toBe(2);
+    expect(sceneData().fort.fortNumber).toBe(1);
+    expect(sceneData().fort.worldSnow).toBe(14);
+  });
+
+  test("a request without a scene drop, or from a scene without a key asset, is refused", async () => {
+    const noScene = await get("/game-state", {}, { ...creds(), sceneDropId: "" });
+    expect(noScene.status).toBe(400);
+    const noKeyAsset = await get("/game-state", {}, creds("p1", 1, "scene-without-key"));
+    expect(noKeyAsset.status).toBe(404);
+  });
+});
+
 describe("Admin", () => {
   test("admin routes are admins only", async () => {
     await get("/game-state");
@@ -287,7 +356,7 @@ describe("Admin", () => {
 
   test("settings report missing fort blocks; lowering the goal places bricks; start new fort resets", async () => {
     store.admins.add("p1");
-    for (let slot = 1; slot <= 50; slot++) if (slot !== 12 && slot !== 27) fake.addAsset(SLUG, `${UNIQUE_NAMES.fortBlockPrefix}${slot}`);
+    for (let slot = 1; slot <= 50; slot++) if (slot !== 12 && slot !== 27) fake.addAsset(SLUG, `${UNIQUE_NAMES.fortBlockPrefix}${slot}`, SCENE);
     await playLake("daily", dailySeed(today()));
 
     const settings = await get("/admin/settings");
@@ -298,13 +367,13 @@ describe("Admin", () => {
     const lowered = await post("/admin/settings", { fortGoal: 1000 });
     expect(lowered.status).toBe(200);
     expect(lowered.body.data.settings.fortGoal).toBe(1000);
-    expect(store.worlds[SLUG].fort.spacing).toEqual({ fromSnow: 14, fromBricks: 0 });
+    expect(sceneData().fort.spacing).toEqual({ fromSnow: 14, fromBricks: 0 });
 
     const reset = await post("/admin/start-new-fort");
     expect(reset.status).toBe(200);
-    const fort = store.worlds[SLUG].fort;
+    const fort = sceneData().fort;
     expect(fort).toMatchObject({ fortNumber: 2, worldSnow: 0, bricksPlaced: 0, builderCount: 0 });
-    expect(store.worlds[SLUG].leaderboards.fortBuilders.p1).toBeDefined(); // leaderboard untouched
+    expect(sceneData().leaderboards.fortBuilders.p1).toBeDefined(); // leaderboard untouched
     expect(store.analytics.map((a: any) => a.analyticName)).toContain("fortRestarts-castle");
   });
 
@@ -312,7 +381,7 @@ describe("Admin", () => {
     store.admins.add("p1");
     await playLake("daily", dailySeed(today()));
     expect((await post("/admin/reset-leaderboard")).status).toBe(200);
-    expect(store.worlds[SLUG].leaderboards.fortBuilders).toEqual({});
-    expect(store.worlds[SLUG].fortBuildersEpoch).toBe(1);
+    expect(sceneData().leaderboards.fortBuilders).toEqual({});
+    expect(sceneData().fortBuildersEpoch).toBe(1);
   });
 });

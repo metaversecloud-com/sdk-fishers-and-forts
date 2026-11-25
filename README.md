@@ -17,7 +17,7 @@ The gear in the Fishing drawer opens **Admin Settings**: fort goal (1,000 / 10,0
 
 ## Required assets (unique names)
 
-Place one scene per world:
+Place one scene per instance. A world can hold several (e.g. one per theme), and each runs independently:
 
 | Asset | Unique name | Click behavior |
 |---|---|---|
@@ -45,8 +45,10 @@ Piece art is served from the `sdk-fishers-and-forts` S3 bucket (same for every e
 
 ## Data objects
 
-- **World**: `fort`, `settings`, `dayKey`, `leaderboards` (pipe-delimited), `tournamentHistory`, `fortBuildersEpoch`.
-- **Visitor/User**: `lifetime` totals and a `badges` cache at the top level; per-world state under `[urlSlug]` (daily progress, tournament progress, snow added).
+- **Key asset** (`Fishers&Forts_keyAsset`, one per scene): `fort`, `settings`, `dayKey`, `leaderboards` (pipe-delimited), `tournamentHistory`, `fortBuildersEpoch`. Every drawer finds its scene's key asset by `sceneDropId`, so two scenes in one world (e.g. two themes) run independently. Nothing is stored in the World data object. Removing a scene removes its data, and re-dropping it starts a fresh fort.
+- **Visitor/User**: `lifetime` totals and a `badges` cache at the top level; per-scene state under `${urlSlug}-${sceneDropId}` (daily progress, tournament progress, snow added).
+
+The app must be placed as a scene: requests without a `sceneDropId` are refused.
 
 Full shapes: [`shared/types/index.ts`](shared/types/index.ts).
 

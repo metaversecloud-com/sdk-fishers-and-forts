@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { FORT_GOAL_OPTIONS, TOURNAMENT_LAKE_OPTIONS } from "@shared/constants.js";
 import { bricksForSnow, sectionsCrossed } from "@shared/fort/fort.js";
-import type { AdminState, FortGoal, TournamentLakesPerDay, WorldDataObject } from "@shared/types/index.js";
+import type { AdminState, FortGoal, TournamentLakesPerDay, SceneDataObject } from "@shared/types/index.js";
 import { Credentials } from "../types/index.js";
 import {
   Analytic,
@@ -11,7 +11,7 @@ import {
   fireMilestoneToasts,
   fortSummaryOf,
   getCredentials,
-  getWorldData,
+  getSceneData,
   newFort,
   reconcileFortPieces,
   updateFortCAS,
@@ -25,7 +25,7 @@ const requireAdmin = async (credentials: Credentials) => {
   return visitor;
 };
 
-const adminState = (world: WorldDataObject, missingSlots: number[]): AdminState => ({
+const adminState = (world: SceneDataObject, missingSlots: number[]): AdminState => ({
   settings: world.settings,
   missingSlots,
   fortNumber: world.fort.fortNumber,
@@ -36,9 +36,11 @@ export const handleGetAdminSettings = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     await requireAdmin(credentials);
-    const { world: worldInstance, data } = await getWorldData(credentials);
+    const scene = await getSceneData(credentials);
+    const { world: worldInstance, data } = scene;
     const { missingSlots } = await reconcileFortPieces({
       world: worldInstance,
+      sceneDropId: scene.sceneDropId,
       theme: data.fort.theme,
       bricksPlaced: data.fort.bricksPlaced,
     });
@@ -60,12 +62,12 @@ export const handleUpdateAdminSettings = async (req: Request, res: Response) => 
     if (tournamentLakesPerDay !== undefined && !TOURNAMENT_LAKE_OPTIONS.includes(tournamentLakesPerDay))
       return res.status(400).json({ success: false, message: "Invalid tournament lakes per day" });
 
-    const { world: worldInstance, data } = await getWorldData(credentials);
+    const scene = await getSceneData(credentials);
+    const { world: worldInstance, data } = scene;
     const now = clock.now();
 
     const { data: updated, result } = await updateFortCAS({
-      credentials,
-      world: worldInstance,
+      scene,
       data,
       compute: (world) => {
         const patch: Record<string, unknown> = {};
@@ -104,6 +106,7 @@ export const handleUpdateAdminSettings = async (req: Request, res: Response) => 
     const sparkleSlots = Array.from({ length: result.bricksAfter - result.bricksBefore }, (_, i) => result.bricksBefore + i + 1);
     const { missingSlots } = await reconcileFortPieces({
       world: worldInstance,
+      sceneDropId: scene.sceneDropId,
       theme: updated.fort.theme,
       bricksPlaced: updated.fort.bricksPlaced,
       sparkleSlots,
@@ -121,11 +124,11 @@ export const handleStartNewFort = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     await requireAdmin(credentials);
-    const { world: worldInstance, data } = await getWorldData(credentials);
+    const scene = await getSceneData(credentials);
+    const { world: worldInstance, data } = scene;
 
     const { data: updated } = await updateFortCAS({
-      credentials,
-      world: worldInstance,
+      scene,
       data,
       compute: (world) => ({
         patch: { fort: newFort(world.fort.fortNumber + 1, clock.now()) },
@@ -136,6 +139,7 @@ export const handleStartNewFort = async (req: Request, res: Response) => {
 
     const { missingSlots } = await reconcileFortPieces({
       world: worldInstance,
+      sceneDropId: scene.sceneDropId,
       theme: updated.fort.theme,
       bricksPlaced: 0,
     });
@@ -151,11 +155,12 @@ export const handleResetLeaderboard = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     await requireAdmin(credentials);
-    const { world: worldInstance, data } = await getWorldData(credentials);
+    const scene = await getSceneData(credentials);
+    const { data } = scene;
     const epoch = (data.fortBuildersEpoch || 0) + 1;
-    await worldInstance.updateDataObject(
+    await scene.keyAsset.updateDataObject(
       { "leaderboards.fortBuilders": {}, fortBuildersEpoch: epoch },
-      { lock: { lockId: `ff-reset-builders-${credentials.urlSlug}-${epoch}`, releaseLock: false } },
+      { lock: { lockId: `ff-reset-builders-${scene.sceneDropId}-${epoch}`, releaseLock: false } },
     );
     return res.json({ success: true });
   } catch (error) {

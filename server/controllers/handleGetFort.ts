@@ -1,19 +1,19 @@
 import { Request, Response } from "express";
 import { SECTIONS, brickThreshold } from "@shared/fort/fort.js";
 import type { FortView } from "@shared/types/index.js";
-import { errorHandler, fortSummaryOf, getCredentials, getVisitorData, getWorldData, runOpenChecks } from "../utils/index.js";
+import { errorHandler, fortSummaryOf, getCredentials, getVisitorData, getSceneData, runOpenChecks } from "../utils/index.js";
 
 /** GET /api/fort?open=true — the Snow Fort drawer payload. */
 export const handleGetFort = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const [{ visitor, lifetime, worldEntry, badgeCache }, { data: world }] = await Promise.all([
+    const [{ visitor, lifetime, sceneEntry, badgeCache }, { data: world }] = await Promise.all([
       getVisitorData(credentials),
-      getWorldData(credentials),
+      getSceneData(credentials),
     ]);
 
     if (req.query.open === "true") {
-      await runOpenChecks({ credentials, visitor, lifetime, worldEntry, badgeCache, world, openAnalytics: ["appOpens", "fortDrawerOpens"] });
+      await runOpenChecks({ credentials, visitor, lifetime, sceneEntry, badgeCache, world, openAnalytics: ["appOpens", "fortDrawerOpens"] });
     }
 
     const { fort, settings } = world;
@@ -21,7 +21,7 @@ export const handleGetFort = async (req: Request, res: Response) => {
       isAdmin: false,
       fort: fortSummaryOf(world),
       variety: fort.variety,
-      youAdded: worldEntry.fortNumber === fort.fortNumber ? worldEntry.snowThisFort : 0,
+      youAdded: sceneEntry.fortNumber === fort.fortNumber ? sceneEntry.snowThisFort : 0,
       builderCount: fort.builderCount || 0,
       sections: SECTIONS.map((s) => {
         const reached = fort.bricksPlaced >= s.lastSlot;

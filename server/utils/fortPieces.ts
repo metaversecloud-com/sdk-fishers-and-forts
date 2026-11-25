@@ -1,7 +1,7 @@
 /**
- * Reconcile the fort pieces in the world with `bricksPlaced`.
+ * Reconcile a scene's fort pieces with `bricksPlaced`.
  *
- * Every pass looks the pieces up by unique name, so deleted, duplicated or re-added blocks are handled
+ * Every pass looks the scene's pieces up and parses their unique names, so deleted, duplicated or re-added blocks are handled
  * without any cached ids: pieces whose image is wrong get swapped, missing slots are reported (never fatal).
  */
 import { BRICK_PARTICLE_NAME, UNIQUE_NAMES } from "@shared/constants.js";
@@ -41,20 +41,20 @@ const runLimited = async <T>(tasks: (() => Promise<T>)[], limit = 8) => {
 
 export const reconcileFortPieces = async ({
   world,
+  sceneDropId,
   theme,
   bricksPlaced,
   sparkleSlots = [],
 }: {
   world: any;
+  /** Only this scene's blocks: another scene in the same world has its own fort. */
+  sceneDropId: string;
   theme: FortTheme;
   bricksPlaced: number;
   /** Newly placed slots that get the sparkle particle. */
   sparkleSlots?: number[];
 }) => {
-  const blocks = await world.fetchDroppedAssetsWithUniqueName({
-    uniqueName: UNIQUE_NAMES.fortBlockPrefix,
-    isPartial: true,
-  });
+  const blocks = await world.fetchDroppedAssetsBySceneDropId({ sceneDropId });
 
   const bySlot = new Map<number, any[]>();
   for (const asset of blocks || []) {

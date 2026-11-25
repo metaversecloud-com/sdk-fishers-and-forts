@@ -96,9 +96,9 @@ The pass runs after a lake finish that placed a brick, when an admin opens Admin
 
 ### 4.2 Data scoping
 
-- **Fort and world state** lives in the **World** data object at top level (no app namespace: the public key already scopes it). It is **not** keyed by `sceneDropId`, because the spec requires fort progress to survive the scene being removed and re-placed, and a re-drop changes `sceneDropId`.
-- **Player state** lives in the Visitor/User record (same backing record). Lifetime totals are top-level keys; per-world state sits under `[urlSlug]`.
-- **Milestone badges are awarded lazily from the player's own record**, not from a world-level list of every contributor's profileId (§Appendix). On app open: if `visitor[urlSlug].snowAdded > 0` and the world has reached milestone X and the player lacks badge X, grant it. This meets §6.3 ("earn it the next time they open the app") without a world data object that grows to 15k+ profileIds and gets fetched on every open. "Builders: n players have helped" becomes a counter, incremented when a player's snow for the current fort goes from 0 to >0.
+- **Fort and scene state** lives in the data object of the scene's **key asset** (`Fishers&Forts_keyAsset`), at top level (no app namespace: the public key already scopes it). Every drawer finds its scene's key asset with `world.fetchDroppedAssetsBySceneDropId`. Decided 11/25, replacing the World data object: two scenes in one world (e.g. two themes) must act independently, and per-scene state in the World data object would grow with every drop and re-drop and be fetched by every request. Trade-off accepted: removing a scene removes its data, and re-dropping it starts a fresh fort.
+- **Player state** lives in the Visitor/User record (same backing record). Lifetime totals are top-level keys; per-scene state sits under `${urlSlug}-${sceneDropId}`.
+- **Milestone badges are awarded lazily from the player's own record**, not from a world-level list of every contributor's profileId (§Appendix). On app open: if the player's scene entry has `snowAdded > 0` and the scene's fort has reached milestone X and the player lacks badge X, grant it. This meets §6.3 ("earn it the next time they open the app") without a data object that grows to 15k+ profileIds and gets fetched on every open. "Builders: n players have helped" becomes a counter, incremented when a player's snow for the current fort goes from 0 to >0.
 - **Tournament badges and the "you finished #4 yesterday" toast are also lazy.** At rollover, save each closed day's final top 10 profileIds in a small bounded `tournamentHistory` (keep 14 days). On open, each player checks the days since they last checked and grants their own Top Ten, Podium or Champion badges.
 
 ### 4.3 Server-authoritative drilling (decided)
@@ -109,11 +109,11 @@ The cost is roughly 18 visitor writes per lake and network latency on each tap. 
 
 Rejected alternative: client-side play with server replay on finish (fish positions visible in devtools).
 
-**Scope (decided):** "one Daily Lake attempt" and the tournament lake cap are **per world**. A player in two worlds plays each world's Daily once and contributes snow in each; lifetime totals (badges) still follow the player.
+**Scope (decided):** "one Daily Lake attempt" and the tournament lake cap are **per scene**. A player in two scenes plays each scene's Daily once and contributes snow in each; lifetime totals (badges) still follow the player.
 
-### 4.4 Write contention on the World data object
+### 4.4 Write contention on the scene data object
 
-Every lake finish touches World Snow, the leaderboards and possibly `bricksPlaced`. Per our "one write per data object per controller" rule, a lake finish does **one** locked `world.updateDataObject()`: fetch, compute the new snow, leaderboard entries and brick count, write, release. Brick image swaps happen **after** the write, outside the lock, as the idempotent reconcile pass from §4.1, so a failed swap is fixed by the next pass. The lock is keyed per world, with short TTL and retry/backoff. Load-test this before launch (Phase 7).
+Every lake finish touches World Snow, the leaderboards and possibly `bricksPlaced`. Per our "one write per data object per controller" rule, a lake finish does **one** locked `keyAsset.updateDataObject()`: fetch, compute the new snow, leaderboard entries and brick count, write, release. Brick image swaps happen **after** the write, outside the lock, as the idempotent reconcile pass from §4.1, so a failed swap is fixed by the next pass. The lock is keyed per scene, with short TTL and retry/backoff. Load-test this before launch (Phase 7).
 
 ## 5. Technical Requirements
 
@@ -132,7 +132,7 @@ Follow `.ai/style-guide.md` for the cascade-layer setup (`tailwind` → `sdk` �
 
 ### 5.2 Required assets (unique names)
 
-All placed as one scene, built by hand by Lina. One instance per world.
+All placed as one scene, built by hand by Lina. A world can hold several instances, one scene each.
 
 | Asset | Unique name | Click behavior |
 |---|---|---|
@@ -147,12 +147,12 @@ All placed as one scene, built by hand by Lina. One instance per world.
 
 The source of truth is [`shared/types/index.ts`](shared/types/index.ts). Summary:
 
-- **World data object** (top-level keys, no app namespace): `fort` (fortNumber, variety, theme, worldSnow, bricksPlaced, a `spacing` anchor for goal re-spacing, milestones, builderCount, startedAt, completedAt), `settings` (fortGoal, tournamentLakesPerDay), `dayKey` (last rolled-over ET day), `leaderboards` (tournament / dailyLake / fortBuilders pipe-delimited maps + `yesterday` frozen maps), `tournamentHistory` (dayKey → top-10 profileIds, 14 days), `fortBuildersEpoch` (bumped by the admin reset).
-- **Visitor/User record:** top-level `lifetime` totals (fish, lakes, perfect lakes, daily lakes, special fish, tournament lakes) and `badges` (name → awardedAt; a cache so most opens skip the inventory fetch). Per-world state under `[urlSlug]`: snowAdded/snowAddedAt, fortNumber + snowThisFort, buildersEpoch + buildersSnow, `daily` progress, `tournament` (dayKey, lakesFinished, fish, reachedAt, started, inProgress, lastFinished), lastSeenDay, lastOpenAt.
+- **Scene data object** (on the key asset; top-level keys, no app namespace): `fort` (fortNumber, variety, theme, worldSnow, bricksPlaced, a `spacing` anchor for goal re-spacing, milestones, builderCount, startedAt, completedAt), `settings` (fortGoal, tournamentLakesPerDay), `dayKey` (last rolled-over ET day), `leaderboards` (tournament / dailyLake / fortBuilders pipe-delimited maps + `yesterday` frozen maps), `tournamentHistory` (dayKey → top-10 profileIds, 14 days), `fortBuildersEpoch` (bumped by the admin reset).
+- **Visitor/User record:** top-level `lifetime` totals (fish, lakes, perfect lakes, daily lakes, special fish, tournament lakes) and `badges` (name → awardedAt; a cache so most opens skip the inventory fetch). Per-scene state under `${urlSlug}-${sceneDropId}`: snowAdded/snowAddedAt, fortNumber + snowThisFort, buildersEpoch + buildersSnow, `daily` progress, `tournament` (dayKey, lakesFinished, fish, reachedAt, started, inProgress, lastFinished), lastSeenDay, lastOpenAt.
 - **LakeProgress** (server-only): kind, seed, dayKey, drilled, caught, marked, drillsLeft, finished, timestamps, result. Lakes are regenerated from the seed, never stored. Seeds are HMAC'd with the app secret so lakes can't be computed from the public source.
 - **Client views:** `LakeView` (49 `HoleView`s; fish only after the lake ends), `FishingState`, `DrillResponse`, `FortView`, `TrophyState`, `AdminState`.
 
-Example World data object:
+Example scene data object:
 
 ```json
 {
@@ -362,7 +362,7 @@ POST /api/admin/reset-leaderboard                      → clears Fort Builders,
 ## 11. Decisions Log (formerly Open Questions, answered by Lina 11/20)
 
 1. **Drilling authority:** server checks each drill (§4.3).
-2. **"One attempt" and the tournament cap:** per world.
+2. **"One attempt" and the tournament cap:** per scene.
 3. **Clickable bricks:** no.
 4. **Drawer picture vs admin edits in the world editor:** acceptable for v1.
 5. **Fort Sign completion art:** no. The sign stays as is; completion shows in the drawer and the toast.

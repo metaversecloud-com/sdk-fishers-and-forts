@@ -1,7 +1,8 @@
 /**
  * In-memory fake of @rtsdk/topia for route tests. Stateful: data objects support dot-path updates,
  * locks behave like the platform (a held lock id rejects the next writer), and dropped assets can be
- * looked up by unique name. Tests drive it through `__store`.
+ * looked up by unique name or scene drop. Each dropped asset has its own data object (`assetData`, keyed by
+ * asset id). The world has no data object: the app keeps no world-level state. Tests drive it through `__store`.
  */
 const clone = <T>(v: T): T => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
 
@@ -18,13 +19,18 @@ const setPath = (obj: any, path: string, value: any) => {
 export interface FakeAsset {
   id: string;
   uniqueName: string;
+  sceneDropId: string;
+  dataObject?: any;
+  fetchDataObject: () => Promise<any>;
+  setDataObject: (data: any, opts?: any) => Promise<void>;
+  updateDataObject: (patch: any, opts?: any) => Promise<void>;
   topLayerURL: string;
   position: { x: number; y: number };
   updateWebImageLayers: jest.Mock;
 }
 
 const freshStore = () => ({
-  worlds: {} as Record<string, any>,
+  assetData: {} as Record<string, any>,
   visitors: {} as Record<string, any>,
   locks: new Set<string>(),
   assets: {} as Record<string, FakeAsset[]>,
@@ -35,8 +41,8 @@ const freshStore = () => ({
   visitorToasts: [] as any[],
   particles: [] as any[],
   analytics: [] as any[],
-  /** Runs before every world updateDataObject (simulate a concurrent writer). */
-  beforeWorldUpdate: null as null | ((slug: string) => void),
+  /** Runs before every dropped asset updateDataObject (simulate a concurrent writer). */
+  beforeSceneUpdate: null as null | ((assetId: string) => void),
 });
 
 export const __store = freshStore();
@@ -57,10 +63,34 @@ const record = (opts: any) => {
   if (opts?.analytics) __store.analytics.push(...opts.analytics);
 };
 
-export const addAsset = (slug: string, uniqueName: string, topLayerURL = "https://art/transparent.png"): FakeAsset => {
+export const addAsset = (
+  slug: string,
+  uniqueName: string,
+  sceneDropId = "scene-1",
+  topLayerURL = "https://art/transparent.png",
+): FakeAsset => {
   const asset: FakeAsset = {
     id: `${uniqueName}-${Math.random().toString(36).slice(2, 7)}`,
     uniqueName,
+    sceneDropId,
+    async fetchDataObject() {
+      asset.dataObject = clone(__store.assetData[asset.id]);
+      return asset.dataObject;
+    },
+    async setDataObject(data: any, opts?: any) {
+      const release = takeLock(opts);
+      __store.assetData[asset.id] = clone(data);
+      record(opts);
+      release();
+    },
+    async updateDataObject(patch: any, opts?: any) {
+      __store.beforeSceneUpdate?.(asset.id);
+      const release = takeLock(opts);
+      const target = (__store.assetData[asset.id] ||= {});
+      for (const [k, v] of Object.entries(patch)) setPath(target, k, v);
+      record(opts);
+      release();
+    },
     topLayerURL,
     position: { x: 10, y: 20 },
     updateWebImageLayers: jest.fn(async function (this: FakeAsset, _bottom: string, top: string) {
@@ -72,29 +102,11 @@ export const addAsset = (slug: string, uniqueName: string, topLayerURL = "https:
 };
 
 class FakeWorld {
-  dataObject: any;
   constructor(public urlSlug: string) {}
-  async fetchDataObject() {
-    this.dataObject = clone(__store.worlds[this.urlSlug]);
-    return this.dataObject;
-  }
-  async setDataObject(data: any, opts?: any) {
-    const release = takeLock(opts);
-    __store.worlds[this.urlSlug] = clone(data);
-    record(opts);
-    release();
-  }
-  async updateDataObject(patch: any, opts?: any) {
-    __store.beforeWorldUpdate?.(this.urlSlug);
-    const release = takeLock(opts);
-    const target = (__store.worlds[this.urlSlug] ||= {});
-    for (const [k, v] of Object.entries(patch)) setPath(target, k, v);
-    record(opts);
-    release();
-  }
-  async fetchDroppedAssetsWithUniqueName({ uniqueName, isPartial }: { uniqueName: string; isPartial?: boolean }) {
-    return (__store.assets[this.urlSlug] || []).filter((a) =>
-      isPartial ? a.uniqueName.includes(uniqueName) : a.uniqueName === uniqueName,
+  async fetchDroppedAssetsBySceneDropId({ sceneDropId, uniqueName }: { sceneDropId: string; uniqueName?: string }) {
+    if (!sceneDropId) throw new Error("A valid sceneDropId is required.");
+    return (__store.assets[this.urlSlug] || []).filter(
+      (a) => a.sceneDropId === sceneDropId && (!uniqueName || a.uniqueName === uniqueName),
     );
   }
   async triggerParticle(args: any) {

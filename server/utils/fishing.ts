@@ -12,14 +12,14 @@ import type {
   LakeView,
   SnowBreakdown,
   TournamentSummary,
-  VisitorWorldData,
-  WorldDataObject,
+  VisitorSceneData,
+  SceneDataObject,
 } from "@shared/types/index.js";
 import { Credentials } from "../types/index.js";
 import { Analytic, analytic } from "./analytics.js";
 import { cleanName, rankOf } from "./leaderboard.js";
 import { dailySeed, tournamentSeed } from "./time.js";
-import { FortUpdate } from "./world.js";
+import { FortUpdate, sceneKey } from "./sceneData.js";
 
 const lakeCache = new Map<string, Lake>();
 /** Lakes are deterministic from their seed, so they're regenerated instead of stored. */
@@ -35,17 +35,17 @@ export const lakeFor = (progress: Pick<LakeProgress, "seed" | "kind">) => {
 };
 
 /** Tournament counters only count for the day they belong to. */
-export const tournamentToday = (worldEntry: VisitorWorldData, today: string) =>
-  worldEntry.tournament.dayKey === today
-    ? worldEntry.tournament
-    : { ...worldEntry.tournament, dayKey: today, lakesFinished: 0, fish: 0, reachedAt: 0 };
+export const tournamentToday = (sceneEntry: VisitorSceneData, today: string) =>
+  sceneEntry.tournament.dayKey === today
+    ? sceneEntry.tournament
+    : { ...sceneEntry.tournament, dayKey: today, lakesFinished: 0, fish: 0, reachedAt: 0 };
 
-export const isDailyFinishedToday = (worldEntry: VisitorWorldData, today: string) =>
-  Boolean(worldEntry.daily && worldEntry.daily.dayKey === today && worldEntry.daily.finished);
+export const isDailyFinishedToday = (sceneEntry: VisitorSceneData, today: string) =>
+  Boolean(sceneEntry.daily && sceneEntry.daily.dayKey === today && sceneEntry.daily.finished);
 
-export const lakesLeftToday = (worldEntry: VisitorWorldData, world: WorldDataObject, today: string) => {
+export const lakesLeftToday = (sceneEntry: VisitorSceneData, world: SceneDataObject, today: string) => {
   const cap = world.settings.tournamentLakesPerDay;
-  return cap === null ? null : Math.max(0, cap - tournamentToday(worldEntry, today).lakesFinished);
+  return cap === null ? null : Math.max(0, cap - tournamentToday(sceneEntry, today).lakesFinished);
 };
 
 /**
@@ -55,46 +55,46 @@ export const lakesLeftToday = (worldEntry: VisitorWorldData, world: WorldDataObj
  */
 export const resolveProgress = ({
   kind,
-  worldEntry,
+  sceneEntry,
   world,
   credentials,
   today,
   now,
 }: {
   kind: LakeKind;
-  worldEntry: VisitorWorldData;
-  world?: WorldDataObject; // required for tournament lakes (daily cap)
+  sceneEntry: VisitorSceneData;
+  world?: SceneDataObject; // required for tournament lakes (daily cap)
   credentials: Credentials;
   today: string;
   now: number;
 }): { progress: LakeProgress; isNew: boolean; outOfLakes: boolean } => {
   if (kind === "daily") {
-    const d = worldEntry.daily;
+    const d = sceneEntry.daily;
     if (d && d.dayKey === today) return { progress: d, isNew: false, outOfLakes: false };
     return { progress: newProgress("daily", dailySeed(today), today, now), isNew: true, outOfLakes: false };
   }
 
-  const t = worldEntry.tournament;
+  const t = sceneEntry.tournament;
   if (t.inProgress && !t.inProgress.finished) return { progress: t.inProgress, isNew: false, outOfLakes: false };
-  const left = world ? lakesLeftToday(worldEntry, world, today) : null;
+  const left = world ? lakesLeftToday(sceneEntry, world, today) : null;
   if (left === 0) {
     const last = t.lastFinished;
     if (last) return { progress: last, isNew: false, outOfLakes: true };
   }
-  const seed = tournamentSeed(credentials.profileId, credentials.urlSlug, t.started || 0);
+  const seed = tournamentSeed(credentials.profileId, sceneKey(credentials), t.started || 0);
   return { progress: newProgress("tournament", seed, today, now), isNew: true, outOfLakes: left === 0 };
 };
 
 export const lakeLabel = (
   kind: LakeKind,
-  worldEntry: VisitorWorldData,
-  world: WorldDataObject | undefined,
+  sceneEntry: VisitorSceneData,
+  world: SceneDataObject | undefined,
   today: string,
   progress: LakeProgress,
 ) => {
   if (kind === "daily") return `DAILY LAKE • ${FISH_COUNT} FISH`;
   const cap = world ? world.settings.tournamentLakesPerDay : null;
-  const done = tournamentToday(worldEntry, today).lakesFinished;
+  const done = tournamentToday(sceneEntry, today).lakesFinished;
   const number = progress.finished ? Math.max(done, 1) : done + 1;
   return cap === null
     ? `TOURNAMENT LAKE ${number} • ${FISH_COUNT} FISH`
@@ -104,11 +104,11 @@ export const lakeLabel = (
 export const buildLakeView = (
   kind: LakeKind,
   progress: LakeProgress,
-  worldEntry: VisitorWorldData,
-  world: WorldDataObject | undefined,
+  sceneEntry: VisitorSceneData,
+  world: SceneDataObject | undefined,
   today: string,
 ): LakeView => {
-  const view = toLakeView(lakeFor(progress), progress, lakeLabel(kind, worldEntry, world, today, progress));
+  const view = toLakeView(lakeFor(progress), progress, lakeLabel(kind, sceneEntry, world, today, progress));
   // The stored result keeps snow earned; "until the next brick" is always live.
   if (view.result && world) {
     const goal = world.settings.fortGoal;
@@ -122,17 +122,17 @@ export const buildLakeView = (
 };
 
 export const buildTournamentSummary = (
-  worldEntry: VisitorWorldData,
-  world: WorldDataObject,
+  sceneEntry: VisitorSceneData,
+  world: SceneDataObject,
   profileId: string,
   today: string,
   rankDelta?: number,
 ): TournamentSummary => {
-  const t = tournamentToday(worldEntry, today);
-  const lakesLeft = lakesLeftToday(worldEntry, world, today);
-  const hasInProgress = Boolean(worldEntry.tournament.inProgress && !worldEntry.tournament.inProgress.finished);
+  const t = tournamentToday(sceneEntry, today);
+  const lakesLeft = lakesLeftToday(sceneEntry, world, today);
+  const hasInProgress = Boolean(sceneEntry.tournament.inProgress && !sceneEntry.tournament.inProgress.finished);
   return {
-    unlocked: isDailyFinishedToday(worldEntry, today),
+    unlocked: isDailyFinishedToday(sceneEntry, today),
     rank: rankOf("tournament", world.leaderboards.tournament, profileId),
     rankDelta,
     fish: t.fish,
@@ -168,7 +168,7 @@ export const finishLakeWorldUpdate =
     kind,
     progress,
     snowTotal,
-    worldEntry,
+    sceneEntry,
     firstSnowThisFort,
     now,
   }: {
@@ -176,11 +176,11 @@ export const finishLakeWorldUpdate =
     kind: LakeKind;
     progress: LakeProgress;
     snowTotal: number;
-    worldEntry: VisitorWorldData; // already updated with this lake
+    sceneEntry: VisitorSceneData; // already updated with this lake
     firstSnowThisFort: boolean;
     now: number;
   }) =>
-  (world: WorldDataObject): FortUpdate<FinishWorldResult> => {
+  (world: SceneDataObject): FortUpdate<FinishWorldResult> => {
     const { profileId, displayName, username } = credentials;
     const name = cleanName(displayName || username);
     const { fort, settings } = world;
@@ -194,7 +194,7 @@ export const finishLakeWorldUpdate =
     const analytics: Analytic[] = [];
     if (snowTotal > 0) {
       patch["fort.worldSnow"] = worldSnow;
-      patch[`leaderboards.fortBuilders.${profileId}`] = `${name}|${worldEntry.buildersSnow}|${worldEntry.snowAddedAt}`;
+      patch[`leaderboards.fortBuilders.${profileId}`] = `${name}|${sceneEntry.buildersSnow}|${sceneEntry.snowAddedAt}`;
     }
     if (bricksAfter > fort.bricksPlaced) {
       patch["fort.bricksPlaced"] = bricksAfter;
@@ -213,7 +213,7 @@ export const finishLakeWorldUpdate =
       patch[`leaderboards.dailyLake.${profileId}`] =
         `${name}|${progress.caught.length}|${progress.drillsLeft}|${progress.finishedAt}`;
     } else {
-      const t = worldEntry.tournament;
+      const t = sceneEntry.tournament;
       patch[`leaderboards.tournament.${profileId}`] = `${name}|${t.fish}|${t.reachedAt}`;
     }
 
@@ -229,4 +229,4 @@ export const finishLakeWorldUpdate =
     };
   };
 
-export const fortSummaryOf = (world: WorldDataObject) => toFortSummary(world.fort, world.settings.fortGoal);
+export const fortSummaryOf = (world: SceneDataObject) => toFortSummary(world.fort, world.settings.fortGoal);

@@ -1,11 +1,12 @@
 /**
  * The player's Visitor/User record (same backing record). Lifetime totals and the badge cache are
- * top-level keys; this world's state lives under `[urlSlug]`.
+ * top-level keys; this scene's state lives under `${urlSlug}-${sceneDropId}` (see `sceneKey`).
  */
 import { VisitorInterface } from "@rtsdk/topia";
-import type { VisitorDataObject, VisitorLifetime, VisitorWorldData } from "@shared/types/index.js";
+import type { VisitorDataObject, VisitorLifetime, VisitorSceneData } from "@shared/types/index.js";
 import { Credentials } from "../types/index.js";
 import { standardizeError } from "./standardizeError.js";
+import { sceneKey } from "./sceneData.js";
 import { sleep } from "./time.js";
 import { Visitor } from "./topiaInit.js";
 
@@ -18,7 +19,7 @@ export const defaultLifetime = (): VisitorLifetime => ({
   tournamentLakesFinished: 0,
 });
 
-export const defaultWorldEntry = (): VisitorWorldData => ({
+export const defaultSceneEntry = (): VisitorSceneData => ({
   snowAdded: 0,
   snowAddedAt: 0,
   fortNumber: 0,
@@ -40,6 +41,7 @@ const read = async (visitor: VisitorInstance) => ((await visitor.fetchDataObject
 export const getVisitorData = async (credentials: Credentials, withDetails = false) => {
   try {
     const { urlSlug, visitorId, profileId } = credentials;
+    const key = sceneKey(credentials);
     const visitor = (
       withDetails
         ? await Visitor.get(visitorId, urlSlug, { credentials })
@@ -49,20 +51,20 @@ export const getVisitorData = async (credentials: Credentials, withDetails = fal
 
     let data = await read(visitor);
     const isEmpty = !data || Object.keys(data).length === 0;
-    const needsWorld = !data?.[urlSlug];
+    const needsScene = !data?.[key];
     const needsLifetime = !data?.lifetime;
 
-    if (isEmpty || needsWorld || needsLifetime) {
-      const lock = { lockId: `ff-visitor-init-${profileId}-${urlSlug}`, releaseLock: true };
+    if (isEmpty || needsScene || needsLifetime) {
+      const lock = { lockId: `ff-visitor-init-${profileId}-${key}`, releaseLock: true };
       try {
         if (isEmpty) {
           await visitor.setDataObject(
-            { lifetime: defaultLifetime(), badges: {}, [urlSlug]: defaultWorldEntry() },
+            { lifetime: defaultLifetime(), badges: {}, [key]: defaultSceneEntry() },
             { lock },
           );
         } else {
           const patch: Record<string, unknown> = {};
-          if (needsWorld) patch[urlSlug] = defaultWorldEntry();
+          if (needsScene) patch[key] = defaultSceneEntry();
           if (needsLifetime) patch.lifetime = defaultLifetime();
           if (!data.badges) patch.badges = {};
           await visitor.updateDataObject(patch, { lock });
@@ -75,16 +77,16 @@ export const getVisitorData = async (credentials: Credentials, withDetails = fal
     }
 
     const lifetime = { ...defaultLifetime(), ...(data.lifetime as VisitorLifetime) };
-    const base = defaultWorldEntry();
-    const stored = (data[urlSlug] || {}) as Partial<VisitorWorldData>;
-    const worldEntry: VisitorWorldData = {
+    const base = defaultSceneEntry();
+    const stored = (data[key] || {}) as Partial<VisitorSceneData>;
+    const sceneEntry: VisitorSceneData = {
       ...base,
       ...stored,
       tournament: { ...base.tournament, ...(stored.tournament || {}) },
     };
     const badgeCache = (data.badges || {}) as Record<string, number>;
 
-    return { visitor, data, lifetime, worldEntry, badgeCache };
+    return { visitor, data, lifetime, sceneEntry, badgeCache };
   } catch (error) {
     throw standardizeError(error);
   }

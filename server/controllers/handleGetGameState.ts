@@ -9,7 +9,7 @@ import {
   fortSummaryOf,
   getCredentials,
   getVisitorData,
-  getWorldData,
+  getSceneData,
   isDailyFinishedToday,
   rankOf,
   resolveProgress,
@@ -25,34 +25,34 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     const now = clock.now();
     const today = etDayKey(new Date(now));
 
-    const [{ visitor, lifetime, worldEntry, badgeCache }, { data: world }] = await Promise.all([
+    const [{ visitor, lifetime, sceneEntry, badgeCache }, { data: world }] = await Promise.all([
       getVisitorData(credentials, true),
-      getWorldData(credentials),
+      getSceneData(credentials),
     ]);
 
     // Tournament is locked until today's Daily Lake is finished.
     let kind: LakeKind = req.query.kind === "tournament" ? "tournament" : "daily";
-    if (kind === "tournament" && !isDailyFinishedToday(worldEntry, today)) kind = "daily";
+    if (kind === "tournament" && !isDailyFinishedToday(sceneEntry, today)) kind = "daily";
 
     if (isOpen) {
       await runOpenChecks({
         credentials,
         visitor,
         lifetime,
-        worldEntry,
+        sceneEntry,
         badgeCache,
         world,
         openAnalytics: ["appOpens", "fishingDrawerOpens"],
       });
     }
 
-    const { progress } = resolveProgress({ kind, worldEntry, world, credentials, today, now });
+    const { progress } = resolveProgress({ kind, sceneEntry, world, credentials, today, now });
 
     const data: FishingState = {
       isAdmin: Boolean(visitor.isAdmin),
-      lake: buildLakeView(kind, progress, worldEntry, world, today),
-      dailyRank: isDailyFinishedToday(worldEntry, today) ? rankOf("dailyLake", world.leaderboards.dailyLake, profileId) : null,
-      tournament: buildTournamentSummary(worldEntry, world, profileId, today),
+      lake: buildLakeView(kind, progress, sceneEntry, world, today),
+      dailyRank: isDailyFinishedToday(sceneEntry, today) ? rankOf("dailyLake", world.leaderboards.dailyLake, profileId) : null,
+      tournament: buildTournamentSummary(sceneEntry, world, profileId, today),
       fort: fortSummaryOf(world),
     };
 

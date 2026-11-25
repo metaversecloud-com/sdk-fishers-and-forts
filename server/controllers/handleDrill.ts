@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { FISH_COUNT, SPECIAL_FISH_NAME } from "@shared/constants.js";
 import { snowUntilNextBrick } from "@shared/fort/fort.js";
 import { applyDrill } from "@shared/lake/engine.js";
-import type { DrillResponse, LakeKind, LakeProgress, VisitorWorldData, WorldDataObject } from "@shared/types/index.js";
+import type { DrillResponse, LakeKind, LakeProgress, VisitorSceneData, SceneDataObject } from "@shared/types/index.js";
 import {
   Analytic,
   analytic,
@@ -18,13 +18,15 @@ import {
   fortSummaryOf,
   getCredentials,
   getVisitorData,
-  getWorldData,
+  getSceneData,
   isDailyFinishedToday,
   lakeFor,
   pendingBadges,
   rankOf,
   reconcileFortPieces,
   resolveProgress,
+  SceneContext,
+  sceneKey,
   tournamentToday,
   updateFortCAS,
 } from "../utils/index.js";
@@ -43,28 +45,32 @@ const REJECT_MESSAGES: Record<string, string> = {
 export const handleDrill = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { profileId, urlSlug } = credentials;
+    const { profileId } = credentials;
+    const key = sceneKey(credentials);
     const kind: LakeKind = req.body?.kind === "tournament" ? "tournament" : "daily";
     const hole = Number(req.body?.hole);
     const now = clock.now();
     const today = etDayKey(new Date(now));
 
-    const { visitor, lifetime, worldEntry, badgeCache } = await getVisitorData(credentials);
+    const { visitor, lifetime, sceneEntry, badgeCache } = await getVisitorData(credentials);
 
-    let worldInstance: any;
-    let world: WorldDataObject | undefined;
+    let scene: SceneContext | undefined;
+    let world: SceneDataObject | undefined;
     const loadWorld = async () => {
-      if (!world) ({ world: worldInstance, data: world } = await getWorldData(credentials));
-      return world;
+      if (!scene) {
+        scene = await getSceneData(credentials);
+        world = scene.data;
+      }
+      return scene;
     };
 
     if (kind === "tournament") {
-      if (!isDailyFinishedToday(worldEntry, today))
+      if (!isDailyFinishedToday(sceneEntry, today))
         return res.status(400).json({ success: false, message: "Finish today's Daily Lake first." });
       await loadWorld();
     }
 
-    const { progress, isNew, outOfLakes } = resolveProgress({ kind, worldEntry, world, credentials, today, now });
+    const { progress, isNew, outOfLakes } = resolveProgress({ kind, sceneEntry, world, credentials, today, now });
     if (kind === "tournament" && isNew && outOfLakes) {
       return res.status(400).json({ success: false, message: "You've fished all your tournament lakes today." });
     }
@@ -81,7 +87,7 @@ export const handleDrill = async (req: Request, res: Response) => {
         .catch(() => console.error("Failed to fire special catch toast"));
     }
 
-    const entry: VisitorWorldData = structuredClone(worldEntry);
+    const entry: VisitorSceneData = structuredClone(sceneEntry);
     const analytics: Analytic[] = [];
     if (isNew) {
       analytics.push(analytic(`lakeStarts-${kind}`, credentials));
@@ -90,15 +96,15 @@ export const handleDrill = async (req: Request, res: Response) => {
 
     // Compare-and-swap on this player's own lake: a double tap that raced is rejected, not double-counted.
     const drillLock = {
-      lockId: `ff-drill-${profileId}-${urlSlug}-${kind}-${state.seed}-${progress.drilled.length + progress.caught.length}`,
+      lockId: `ff-drill-${profileId}-${key}-${kind}-${state.seed}-${progress.drilled.length + progress.caught.length}`,
       releaseLock: false,
     };
 
     // ───────── Mid-lake: save progress only ─────────
     if (!outcome.finished) {
       let patch: Record<string, unknown>;
-      if (kind === "daily") patch = { [`${urlSlug}.daily`]: state };
-      else patch = { [`${urlSlug}.tournament`]: { ...entry.tournament, inProgress: state } };
+      if (kind === "daily") patch = { [`${key}.daily`]: state };
+      else patch = { [`${key}.tournament`]: { ...entry.tournament, inProgress: state } };
       try {
         await visitor.updateDataObject(patch, { analytics, lock: drillLock });
       } catch (error) {
@@ -117,8 +123,8 @@ export const handleDrill = async (req: Request, res: Response) => {
     }
 
     // ───────── Lake finished ─────────
-    await loadWorld();
-    const worldBefore = world!;
+    const loaded = await loadWorld();
+    const worldBefore = loaded.data;
     const snow = computeSnow(lake, state);
     const caught = state.caught.length;
     const perfect = caught >= FISH_COUNT;
@@ -176,7 +182,7 @@ export const handleDrill = async (req: Request, res: Response) => {
 
     // Badges earned by this lake (milestone badges for a first-time helper included).
     const names = pendingBadges(
-      { lifetime: nextLifetime, worldEntry: entry, world: worldBefore, profileId },
+      { lifetime: nextLifetime, sceneEntry: entry, world: worldBefore, profileId },
       badgeCache,
     );
     const { record, analytics: badgeAnalytics } = await awardBadges({ credentials, visitor, names });
@@ -186,7 +192,7 @@ export const handleDrill = async (req: Request, res: Response) => {
     if (snow.specialCaught) analytics.push(analytic("specialCatches", credentials));
     analytics.push(...badgeAnalytics);
 
-    const visitorPatch: Record<string, unknown> = { [urlSlug]: entry, lifetime: nextLifetime };
+    const visitorPatch: Record<string, unknown> = { [key]: entry, lifetime: nextLifetime };
     for (const name of record) visitorPatch[`badges.${name}`] = now;
     try {
       await visitor.updateDataObject(visitorPatch, { analytics, lock: drillLock });
@@ -199,15 +205,14 @@ export const handleDrill = async (req: Request, res: Response) => {
     let addedBrick = false;
     try {
       const { data, result } = await updateFortCAS({
-        credentials,
-        world: worldInstance,
+        scene: loaded,
         data: worldBefore,
         compute: finishLakeWorldUpdate({
           credentials,
           kind,
           progress: state,
           snowTotal: snow.total,
-          worldEntry: entry,
+          sceneEntry: entry,
           firstSnowThisFort,
           now,
         }),
@@ -221,7 +226,8 @@ export const handleDrill = async (req: Request, res: Response) => {
           (_, i) => result.bricksBefore + i + 1,
         );
         await reconcileFortPieces({
-          world: worldInstance,
+          world: loaded.world,
+          sceneDropId: loaded.sceneDropId,
           theme: worldAfter.fort.theme,
           bricksPlaced: worldAfter.fort.bricksPlaced,
           sparkleSlots,
@@ -230,7 +236,7 @@ export const handleDrill = async (req: Request, res: Response) => {
           .fireToast({ title: "Snow Fort", text: "You added a brick to the Snow Fort!" })
           .catch(() => console.error("Failed to fire brick toast"));
       }
-      fireMilestoneToasts(worldInstance, result.milestonesReached, result.completed);
+      fireMilestoneToasts(loaded.world, result.milestonesReached, result.completed);
     } catch (error) {
       // The player's lake is saved; only the world credit failed. Log loudly for follow-up.
       errorHandler({ error, functionName: "handleDrill", message: "World snow write failed after retries", req });

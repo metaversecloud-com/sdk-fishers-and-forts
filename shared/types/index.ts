@@ -83,7 +83,8 @@ export interface VisitorTournament {
   lastFinished?: LakeProgress | null;
 }
 
-export interface VisitorWorldData {
+/** One player's state in one scene, stored under `${urlSlug}-${sceneDropId}`. */
+export interface VisitorSceneData {
   snowAdded: number; // all-time snow added in this world (Fort Builders)
   snowAddedAt: number;
   fortNumber: number; // fort that snowThisFort refers to
@@ -100,7 +101,7 @@ export interface VisitorWorldData {
 export interface VisitorDataObject {
   lifetime?: VisitorLifetime;
   badges?: Record<string, number>; // badgeName -> awardedAt (cache so most opens skip the inventory fetch)
-  [urlSlug: string]: VisitorWorldData | VisitorLifetime | Record<string, number> | undefined;
+  [sceneKey: string]: VisitorSceneData | VisitorLifetime | Record<string, number> | undefined;
 }
 
 // ───────────────────────── World data object ─────────────────────────
@@ -137,7 +138,7 @@ export interface WorldLeaderboards {
   yesterday?: { dayKey: string; tournament: Record<string, string>; dailyLake: Record<string, string> } | null;
 }
 
-export interface WorldDataObject {
+export interface SceneDataObject {
   fort: FortState;
   settings: WorldSettings;
   dayKey: string;

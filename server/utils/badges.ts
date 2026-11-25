@@ -4,7 +4,7 @@
  * The code only knows WHEN each badge is earned, keyed by the catalog item's exact `name`.
  */
 import { InventoryItemInterface } from "@rtsdk/topia";
-import type { BadgeView, VisitorLifetime, VisitorWorldData, WorldDataObject } from "@shared/types/index.js";
+import type { BadgeView, VisitorLifetime, VisitorSceneData, SceneDataObject } from "@shared/types/index.js";
 import { Credentials } from "../types/index.js";
 import { Analytic, analytic } from "./analytics.js";
 import { standardizeError } from "./standardizeError.js";
@@ -13,14 +13,14 @@ import type { VisitorInstance } from "./visitorData.js";
 
 export interface BadgeContext {
   lifetime: VisitorLifetime;
-  worldEntry: VisitorWorldData;
-  world: WorldDataObject;
+  sceneEntry: VisitorSceneData;
+  world: SceneDataObject;
   profileId: string;
   /** Best tournament finish on days not yet checked (lazy awards). */
   tournamentBestRank?: number | null;
 }
 
-const helped = (c: BadgeContext) => c.worldEntry.snowAdded > 0;
+const helped = (c: BadgeContext) => c.sceneEntry.snowAdded > 0;
 const milestone = (c: BadgeContext, key: "foundation" | "walls" | "towers" | "keep") =>
   helped(c) && Boolean(c.world.fort.milestones?.[key]);
 const rankAtMost = (c: BadgeContext, n: number) => c.tournamentBestRank != null && c.tournamentBestRank <= n;

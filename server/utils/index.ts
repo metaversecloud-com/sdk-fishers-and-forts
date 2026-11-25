@@ -14,4 +14,4 @@ export * from "./standardizeError.js";
 export * from "./time.js";
 export * from "./topiaInit.js";
 export * from "./visitorData.js";
-export * from "./world.js";
+export * from "./sceneData.js";

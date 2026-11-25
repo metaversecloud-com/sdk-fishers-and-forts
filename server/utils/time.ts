@@ -30,5 +30,6 @@ const hmac = (value: string) =>
 
 export const dailySeed = (dayKey: string) => hmac(`daily-${dayKey}`);
 
-export const tournamentSeed = (profileId: string, urlSlug: string, lakeNumber: number) =>
-  hmac(`tournament-${urlSlug}-${profileId}-${lakeNumber}`);
+/** `scope` is the scene key, so each scene deals its own tournament lakes. */
+export const tournamentSeed = (profileId: string, scope: string, lakeNumber: number) =>
+  hmac(`tournament-${scope}-${profileId}-${lakeNumber}`);

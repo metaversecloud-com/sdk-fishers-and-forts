@@ -7,7 +7,7 @@ import {
   getCachedInventoryItems,
   getCredentials,
   getVisitorData,
-  getWorldData,
+  getSceneData,
   ownedBadgeNames,
   runOpenChecks,
 } from "../utils/index.js";
@@ -19,9 +19,9 @@ export const handleGetTrophy = async (req: Request, res: Response) => {
     const { profileId } = credentials;
     const forceRefresh = req.query.forceRefreshInventory === "true";
 
-    const [{ visitor, lifetime, worldEntry, badgeCache }, { data: world }, items] = await Promise.all([
+    const [{ visitor, lifetime, sceneEntry, badgeCache }, { data: world }, items] = await Promise.all([
       getVisitorData(credentials, true),
-      getWorldData(credentials),
+      getSceneData(credentials),
       getCachedInventoryItems({ credentials, forceRefresh }),
     ]);
 
@@ -30,7 +30,7 @@ export const handleGetTrophy = async (req: Request, res: Response) => {
         credentials,
         visitor,
         lifetime,
-        worldEntry,
+        sceneEntry,
         badgeCache,
         world,
         openAnalytics: ["appOpens", "leaderboardViews-tournament"],
