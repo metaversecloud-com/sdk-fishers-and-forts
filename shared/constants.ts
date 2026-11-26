@@ -24,9 +24,6 @@ export const LEADERBOARD_ROWS = 25;
 export const TOURNAMENT_HISTORY_TOP = 10;
 export const TOURNAMENT_HISTORY_DAYS = 14;
 
-/** Today's special fish name (v1 shows a single special fish; the 10-fish rotation is stretch). */
-export const SPECIAL_FISH_NAME = "Rainbow Trout";
-
 /** Unique names of the assets in the scene. Drawers are chosen by path route, not unique name. */
 export const UNIQUE_NAMES = {
   keyAsset: "Fishers&Forts_keyAsset",

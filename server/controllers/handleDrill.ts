@@ -83,7 +83,7 @@ export const handleDrill = async (req: Request, res: Response) => {
     const caughtSpecial = outcome.fish && lake.special === hole;
     if (caughtSpecial) {
       visitor
-        .fireToast({ title: "Special catch!", text: `Special catch! You caught today's ${SPECIAL_FISH_NAME}.` })
+        .fireToast({ title: "Special catch!", text: `You caught today's special catch!` })
         .catch(() => console.error("Failed to fire special catch toast"));
     }
 
