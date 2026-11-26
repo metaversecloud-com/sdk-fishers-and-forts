@@ -19,15 +19,11 @@
 5. **[`.ai/examples/`](.ai/examples/)** — specific patterns: badges, inventory cache, dropped assets, data-object scoping, locking, leaderboards, world activity, visitor interactions, analytics tracking, etc.
 6. **[`.ai/templates/plan.md`](.ai/templates/plan.md)** — finalization checklist when wrapping up an app.
 
-## Protected files — never modify without explicit permission
+## Standard files & patterns — reuse them, keep their contracts
 
-These are surfaced here because they're agent-blocking; the full rationale is in `.ai/rules.md`.
+Not locked: change them when the app needs it, but keep each file's contract and don't replace it with a parallel mechanism. See `.ai/rules.md` → `STANDARD FILES & PATTERNS` (canonical: `../sdk-ai-boilerplate/.ai/rules.md`).
 
-- `client/App.tsx`
-- `client/src/components/PageContainer.tsx`
-- `client/backendAPI.ts`
-- `client/setErrorMessage.ts`
-- `server/getCredentials.ts`
+- `client/src/App.tsx` (interactive params, backend setup, one path route per drawer), `client/src/components/PageContainer.tsx` / `AdminIconButton.tsx` / `AdminView.tsx`, `client/src/utils/backendAPI.ts`, `client/src/utils/setErrorMessage.ts`, `server/utils/getCredentials.ts`, `server/utils/errorHandler.ts`.
 
 `client/topiaInit.ts` must exist; its exports may be adjusted.
 
@@ -43,4 +39,6 @@ Stop. Propose a minimal stub, list assumptions, ask one concise question. If no 
 
 ## App-specific context
 
-When forking this boilerplate into a new app, replace this section with anything specific to your app (game mechanics, required dropped-asset unique names, ecosystem badge names, etc.). Everything else stays in `.ai/`.
+**Fishers & Forts**: Ice Fishing logic puzzle (drawer) + a world-built Snow Fort fed by every fish caught. Launch: Winter Wonderland, Dec 1, 2026.
+
+Read **[`plan.md`](plan.md)** before any work. It holds the decisions (pre-placed fort pieces + image swap, data scoping, server-authoritative drilling), data models, required asset unique names, build phases, and open questions. Design source: Spec 0.2 + `ww-icefish-ui-*` mockups (kept outside the repo; ask Lina for the folder).

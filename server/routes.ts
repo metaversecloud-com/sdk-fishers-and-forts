@@ -1,5 +1,15 @@
 import express from "express";
-import { handleGetGameState } from "./controllers/index.js";
+import {
+  handleDrill,
+  handleGetAdminSettings,
+  handleGetFort,
+  handleGetGameState,
+  handleGetTrophy,
+  handleLeaderboardView,
+  handleResetLeaderboard,
+  handleStartNewFort,
+  handleUpdateAdminSettings,
+} from "./controllers/index.js";
 import { getVersion } from "@utils/getVersion.js";
 
 const router = express.Router();
@@ -25,6 +35,17 @@ router.get("/system/health", (req, res) => {
   });
 });
 
+// Drawers
 router.get("/game-state", handleGetGameState);
+router.post("/lake/drill", handleDrill);
+router.get("/fort", handleGetFort);
+router.get("/trophy", handleGetTrophy);
+router.post("/leaderboard-view", handleLeaderboardView);
+
+// Admin
+router.get("/admin/settings", handleGetAdminSettings);
+router.post("/admin/settings", handleUpdateAdminSettings);
+router.post("/admin/start-new-fort", handleStartNewFort);
+router.post("/admin/reset-leaderboard", handleResetLeaderboard);
 
 export default router;

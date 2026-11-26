@@ -1,5 +1,4 @@
-import { DroppedAssetInterface } from "@rtsdk/topia";
-import { VisitorDataObjectType } from "@shared/types/VisitorData";
+import type { FishingState, FortView, TrophyState } from "@shared/types";
 
 export const SET_HAS_INTERACTIVE_PARAMS = "SET_HAS_INTERACTIVE_PARAMS";
 export const SET_GAME_STATE = "SET_GAME_STATE";
@@ -23,8 +22,9 @@ export interface InitialState {
   isAdmin?: boolean;
   error?: string;
   hasInteractiveParams?: boolean;
-  visitorData?: VisitorDataObjectType;
-  droppedAsset?: DroppedAssetInterface;
+  fishing?: FishingState;
+  fort?: FortView;
+  trophy?: TrophyState;
 }
 
 export type ActionType = {

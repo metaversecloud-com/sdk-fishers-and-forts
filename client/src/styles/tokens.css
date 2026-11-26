@@ -1,28 +1,111 @@
 /*
- * App design tokens.
+ * Fishers & Forts — design tokens (Trivia visual family, Frost palette).
  *
- * Define brand colors, surfaces, gradients, shadows, etc. as CSS custom
- * properties here. Consume them in `components.css` and in JSX inline-style
- * `style={{ ... }}` only for genuinely dynamic values. Don't hard-code hex
- * values inside individual component classes.
- *
- * Use an app-specific prefix on every variable name (e.g. `--er-cyan` for the
- * escape-room app, `--kr-primary` for kitchen-rush) so tokens are obviously
- * project-scoped and won't collide with anything from the SDK or Tailwind.
- *
- * Example:
- *
- *   :root {
- *     --app-primary: #2563eb;
- *     --app-bg-card: #ffffff;
- *     --app-grad-hero: linear-gradient(135deg, #60a5fa, #2563eb);
- *     --app-shadow-card: 0 6px 14px rgba(15, 23, 42, 0.08);
- *   }
+ * Unlayered (imported from index.css outside any @layer), so these beat the SDK and Tailwind layers.
+ * Components reference semantic tokens; a future re-theme (e.g. tropical) only retargets this file.
  */
 
-/* Re-add the box-sizing reset that Tailwind's preflight used to provide. */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+:root {
+  /* ─── Frost palette ─── */
+  --ff-drawer: #eef4f7; /* drawer background */
+  --ff-card: #fbfdfe; /* cards, drilled holes */
+  --ff-ink: #10202e; /* outlines, shadows, main text */
+  --ff-accent: #2f6fed; /* main button, fort bar, player's rank chip */
+  --ff-accent-press: #2559c4;
+  --ff-accent-disabled: #9cbaf4;
+  --ff-sun: #ffd447; /* banner, starter-clue ring, special fish, top-3 chips */
+  --ff-ice: #bfe3f7; /* undrilled ice */
+  --ff-ice-hover: #d3ecfa;
+  --ff-line: #93cbe9; /* lines between holes, pressed hole */
+  --ff-marked: #e0f1fb; /* Helper-marked empty */
+  --ff-fish: #ff7a45;
+  --ff-muted: #566877; /* secondary text */
+  --ff-mute-2: #8a99a6; /* disabled / locked */
+  --ff-danger: #e5484d;
+  --ff-danger-press: #c93a3f;
+  --ff-sky: #cfe6f4; /* fort picture sky */
+  --ff-ground: #eef6fb;
+  --ff-tile-earned-fishing: var(--ff-sun);
+  --ff-tile-earned-daily: var(--ff-fish);
+  --ff-tile-earned-tournament: var(--ff-accent);
+  --ff-tile-earned-fort: var(--ff-ice);
+
+  /* ─── Type (Trivia's fonts; body is Outfit) ─── */
+  --ff-font-display: "Bricolage Grotesque", "Outfit", system-ui, sans-serif;
+  --ff-font-mono: "Space Mono", ui-monospace, monospace;
+  --ff-font-body: "Outfit", system-ui, sans-serif;
+
+  /* ─── Shapes ─── */
+  --ff-outline: 2.5px solid var(--ff-ink);
+  --ff-shadow-drawer: 0 6px 0 var(--ff-ink);
+  --ff-shadow-card: 0 5px 0 var(--ff-ink);
+  --ff-shadow-btn: 0 4px 0 var(--ff-ink);
+  --ff-radius-card: 14px;
+  --ff-radius-btn: 12px;
+  --ff-radius-lake: 6px;
+  --ff-pad: 16px;
+
+  /* ─── Motion ─── */
+  --ff-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ff-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html,
+body.rtsdk {
+  background: var(--ff-drawer);
+  color: var(--ff-ink);
+  font-family: var(--ff-font-body);
+  margin: 0;
+}
+
+/* :where() keeps these resets at zero specificity so component classes can set margins. Being
+   unlayered, they still beat the SDK layer's own p/h* fonts (which would otherwise win over inheritance). */
+:where(.rtsdk) h1,
+:where(.rtsdk) h2,
+:where(.rtsdk) h3,
+:where(.rtsdk) h4 {
+  font-family: var(--ff-font-display);
+  color: var(--ff-ink);
+  margin: 0;
+}
+
+:where(.rtsdk) p {
+  font-family: var(--ff-font-body);
+  color: var(--ff-ink);
+  margin: 0;
+}
+
+/* Focus ring for every interactive element (WCAG 2.4.7). */
+.rtsdk :focus-visible {
+  outline: 3px solid var(--ff-accent);
+  outline-offset: 2px;
+}
+
+.ff-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* All motion is skipped when the device asks for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

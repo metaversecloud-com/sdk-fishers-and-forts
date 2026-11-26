@@ -1,61 +1,63 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, getDroppedAsset, getVisitor, World } from "@utils/index.js";
-import axios from "axios";
+import type { FishingState, LakeKind } from "@shared/types/index.js";
+import {
+  buildLakeView,
+  buildTournamentSummary,
+  clock,
+  errorHandler,
+  etDayKey,
+  fortSummaryOf,
+  getCredentials,
+  getVisitorData,
+  getSceneData,
+  isDailyFinishedToday,
+  rankOf,
+  resolveProgress,
+  runOpenChecks,
+} from "../utils/index.js";
 
+/** GET /api/game-state?kind=daily|tournament&open=true — the Fishing drawer payload. */
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { assetId, displayName, interactiveNonce, interactivePublicKey, profileId, urlSlug, visitorId } = credentials;
+    const { profileId } = credentials;
+    const isOpen = req.query.open === "true";
+    const now = clock.now();
+    const today = etDayKey(new Date(now));
 
-    const droppedAsset = await getDroppedAsset(credentials);
+    const [{ visitor, lifetime, sceneEntry, badgeCache }, { data: world }] = await Promise.all([
+      getVisitorData(credentials, true),
+      getSceneData(credentials),
+    ]);
 
-    const world = World.create(urlSlug, { credentials });
-    world.triggerParticle({ name: "Sparkle", duration: 3, position: droppedAsset.position }).catch((error: any) =>
-      errorHandler({
-        error,
-        functionName: "handleGetGameState",
-        message: "Error triggering particle effects",
-      }),
-    );
+    // Tournament is locked until today's Daily Lake is finished.
+    let kind: LakeKind = req.query.kind === "tournament" ? "tournament" : "daily";
+    if (kind === "tournament" && !isDailyFinishedToday(sceneEntry, today)) kind = "daily";
 
-    const { visitor } = await getVisitor(credentials, true);
-    const { isAdmin } = visitor;
-
-    try {
-      await axios.post(
-        `${process.env.LEADERBOARD_BASE_URL || "http://v2lboard0-prod-topia.topia-rtsdk.com"}/api/dropped-asset/increment-player-stats?assetId=${assetId}&displayName=${displayName}&interactiveNonce=${interactiveNonce}&interactivePublicKey=${interactivePublicKey}&profileId=${profileId}&urlSlug=${urlSlug}&visitorId=${visitorId}`,
-        {
-          publicKey: interactivePublicKey,
-          secret: process.env.INTERACTIVE_SECRET,
-          profileId,
-          displayName,
-          incrementBy: 1,
-        },
-      );
-    } catch (error) {
-      errorHandler({
-        error,
-        functionName: "handleGetGameState",
-        message: "Error posting player stats to Leaderboard",
+    if (isOpen) {
+      await runOpenChecks({
+        credentials,
+        visitor,
+        lifetime,
+        sceneEntry,
+        badgeCache,
+        world,
+        openAnalytics: ["appOpens", "fishingDrawerOpens"],
       });
     }
 
-    await world.fireToast({ title: "Nice Work!", text: "You've successfully completed the task!" }).catch((error) =>
-      errorHandler({
-        error,
-        functionName: "handleGetGameState",
-        message: "Error firing toast in world",
-      }),
-    );
+    const { progress } = resolveProgress({ kind, sceneEntry, world, credentials, today, now });
 
-    return res.json({ droppedAsset, isAdmin, success: true });
+    const data: FishingState = {
+      isAdmin: Boolean(visitor.isAdmin),
+      lake: buildLakeView(kind, progress, sceneEntry, world, today),
+      dailyRank: isDailyFinishedToday(sceneEntry, today) ? rankOf("dailyLake", world.leaderboards.dailyLake, profileId) : null,
+      tournament: buildTournamentSummary(sceneEntry, world, profileId, today),
+      fort: fortSummaryOf(world),
+    };
+
+    return res.json({ success: true, data });
   } catch (error) {
-    return errorHandler({
-      error,
-      functionName: "getDroppedAssetDetails",
-      message: "Error getting dropped asset instance and data object",
-      req,
-      res,
-    });
+    return errorHandler({ error, functionName: "handleGetGameState", message: "Error loading the Fishing drawer", req, res });
   }
 };
